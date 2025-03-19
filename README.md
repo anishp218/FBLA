@@ -36,7 +36,7 @@ Game Highlights:
 - Cool visuals to show how your choices pan out.
 
 Pro Tips:
-- Don’t put all your eggs in one basket—diversify!
+- Diversify your investements!
 - Learn from what happens in the game to improve.=
 - Keep an eye on the tips—they're super helpful.
 - Take some risks, but don’t go too wild.
