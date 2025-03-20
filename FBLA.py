@@ -1,384 +1,196 @@
-import pygame, random, sys
+import pygame
+import random
+import sys
 
-# Initialize pygame
+# Initialize      
 pygame.init()
 
 # Constants
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 900, 700
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("FORTUNE'S PATH: A JOURNEY TO FINANCIAL WISDOM")
+pygame.display.set_caption("Investment Story Game")
 
 # Colors
-WHITE, BLACK = (255, 255, 255), (0, 0, 0)
-RED, GREEN, BLUE = (255, 0, 0), (0, 255, 0), (0, 0, 255)
-LIGHT_BLUE, LIGHT_GREEN = (173, 216, 230), (144, 238, 144)
-LIGHT_YELLOW, LIGHT_CORAL = (255, 255, 224), (240, 128, 128)
-DARK_GREEN, DARK_BLUE, DARK_RED = (0, 100, 0), (0, 0, 139), (139, 0, 0)
-BROWN, GRAY, LIGHT_GRAY = (165, 42, 42), (128, 128, 128), (200, 200, 200)
-GOLD, ROYAL_BLUE, DEEP_PURPLE = (255, 215, 0), (65, 105, 225), (72, 61, 139)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+LIGHT_BLUE = (173, 216, 230)
+LIGHT_GREEN = (144, 238, 144)
+LIGHT_YELLOW = (255, 255, 224)
+LIGHT_GREY = (211, 211, 211)
+LIGHT_CORAL = (240, 128, 128)
+DARK_GREEN = (0, 100, 0)
+DARK_BLUE = (0, 0, 139)
+DARK_RED = (139, 0, 0)
+BROWN = (165, 42, 42)
+GRAY = (128, 128, 128)
+LIGHT_GRAY = (200, 200, 200)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
 
-# Fonts - smaller sizes for better text fitting
-main_font = pygame.font.SysFont("Arial", 16)
-title_font = pygame.font.SysFont("Arial", 28, bold=True)
-subtitle_font = pygame.font.SysFont("Arial", 20, bold=True)
-button_font = pygame.font.SysFont("Arial", 14, bold=True)
-small_font = pygame.font.SysFont("Arial", 12)
+# Fonts
+main_font = pygame.font.SysFont("Times New Roman", 24)
+title_font = pygame.font.SysFont("Times New Roman", 36)
+button_font = pygame.font.SysFont("Times New Roman", 20)
+small_font = pygame.font.SysFont("Times New Roman", 16)
 
-# Helper functions to reduce redundancy
+# Market news that affects sectors
+market_news = [
+    {"headline": "Technology center explodes in Silicon Valley!", "tech": -15, "real_estate": -5, "energy": 0, "biotech": -10, "bonds": 5},
+    {"headline": "New breakthrough in cancer treatment!", "tech": 0, "real_estate": 0, "energy": 0, "biotech": 20, "bonds": 0},
+    {"headline": "Housing market crashes nationwide!", "tech": -5, "real_estate": -25, "energy": -5, "biotech": -5, "bonds": 10},
+    {"headline": "Oil pipeline ruptures, causing major spill!", "tech": 0, "real_estate": -5, "energy": -20, "biotech": 0, "bonds": 0},
+    {"headline": "New renewable energy tax credits approved!", "tech": 5, "real_estate": 0, "energy": 15, "biotech": 0, "bonds": 0},
+    {"headline": "Fed raises interest rates!", "tech": -10, "real_estate": -15, "energy": -5, "biotech": -10, "bonds": 15},
+    {"headline": "Major tech company releases revolutionary AI!", "tech": 25, "real_estate": 0, "energy": 0, "biotech": 5, "bonds": -5},
+    {"headline": "Pandemic causes global lockdowns!", "tech": 10, "real_estate": -20, "energy": -15, "biotech": 30, "bonds": 10},
+    {"headline": "Solar energy efficiency doubles with new technology!", "tech": 10, "real_estate": 0, "energy": 20, "biotech": 0, "bonds": -5},
+    {"headline": "Housing construction booms in major cities!", "tech": 0, "real_estate": 25, "energy": 5, "biotech": 0, "bonds": -5},
+    {"headline": "Government increases infrastructure spending!", "tech": 5, "real_estate": 15, "energy": 10, "biotech": 0, "bonds": -10},
+    {"headline": "Major political unrest in oil-producing regions!", "tech": -5, "real_estate": -10, "energy": -25, "biotech": -5, "bonds": 15}
+]
 
-# Draw gradient background
-def draw_gradient_background(color1, color2):
-    for y in range(HEIGHT):
-        ratio = y / HEIGHT
-        r = color1[0] * (1 - ratio) + color2[0] * ratio
-        g = color1[1] * (1 - ratio) + color2[1] * ratio
-        b = color1[2] * (1 - ratio) + color2[2] * ratio
-        pygame.draw.line(SCREEN, (r, g, b), (0, y), (WIDTH, y))
+# Portfolio to track investments
+portfolio = {
+    "tech": {"long": 0, "short": 0},
+    "real_estate": {"long": 0, "short": 0},
+    "energy": {"long": 0, "short": 0},
+    "biotech": {"long": 0, "short": 0},
+    "government": {"long": 0, "short": 0},
+    "corporate": {"long": 0, "short": 0},
+    "municipal": {"long": 0, "short": 0},
+    "high_yield": {"long": 0, "short": 0},
+    "savings": {"amount": 0},
+    "emergency": {"amount": 0}
+}
 
-# Draw header with title and optional shadow
-def draw_header(title, title_color=WHITE, background_color=ROYAL_BLUE, y_pos=50, font=subtitle_font, shadow=True):
-    # Draw header panel
-    pygame.draw.rect(SCREEN, background_color, (50, y_pos, WIDTH-100, 70), border_radius=15)
-    pygame.draw.rect(SCREEN, BLACK, (50, y_pos, WIDTH-100, 70), 2, border_radius=15)
-    
-    # Draw title, optionally with shadow
-    if shadow:
-        draw_text(title, WIDTH//2+2, y_pos+35+2, font, BLACK)  # Shadow
-    draw_text(title, WIDTH//2, y_pos+35, font, title_color)
+# Current market news
+current_news = None
 
-# Create a panel with optional transparency
-def create_panel(width, height, x, y, color=(255, 255, 255), alpha=200, border=False, border_radius=10, border_color=BLACK):
-    panel = pygame.Surface((width, height), pygame.SRCALPHA)
-    
-    # Handle both RGB and RGBA color formats
-    if len(color) == 3:
-        panel.fill((color[0], color[1], color[2], alpha))
-    else:
-        panel.fill(color)  # Assume RGBA format already
-        
-    SCREEN.blit(panel, (x, y))
-    if border:
-        pygame.draw.rect(SCREEN, border_color, (x, y, width, height), 2, border_radius=border_radius)
-        
-# Display wealth with appropriate colors
-def display_wealth(wealth, x, y, show_shadow=True):
-    panel_color = (144, 238, 144, 220) if wealth > 10000 else \
-                 (255, 182, 193, 220) if wealth < 10000 else (255, 255, 255, 220)
-    
-    create_panel(300, 60, x-150, y, color=panel_color[:3], alpha=panel_color[3], border=True)
-    
-    # Add coin decorations
-    for x_offset in [25, 275]:
-        pygame.draw.circle(SCREEN, GOLD, (x-150+x_offset, y+30), 15)
-        pygame.draw.circle(SCREEN, BLACK, (x-150+x_offset, y+30), 15, 1)
-    
-    # Display wealth with appropriate color
-    wealth_color = DARK_GREEN if wealth > 10000 else DARK_RED if wealth < 10000 else BLACK
-    if show_shadow:
-        draw_text(f"Current Wealth: ${wealth:.2f}", x+1, y+30+1, main_font, BLACK)  # Shadow
-    draw_text(f"Current Wealth: ${wealth:.2f}", x, y+30, main_font, wealth_color)
-
-# Function to display detailed market research to help with skill-based decisions
-def show_market_research(options):
-    # Create attractive background for the research screen
-    draw_gradient_background((50, 50, 80), (30, 30, 60))
-    
-    # Draw header with professional look
-    draw_header("Advanced Market Research", WHITE, (70, 130, 180), 30, font=subtitle_font)
-    
-    # Create main research panel
-    create_panel(WIDTH-60, HEIGHT-120, 30, 90, color=(240, 240, 250), alpha=230, border=True)
-    
-    # Market research title
-    draw_text("ASSET CLASS ANALYSIS AND MARKET PREDICTIONS", WIDTH//2, 120, subtitle_font, DARK_BLUE)
-    
-    # Market trend indicators - these will influence investment outcomes
-    market_trends = {
-        "Stock Market Index Fund": random.choice(["all-time high", "strong uptrend", "stable growth", "slight decline", "bearish market"]),
-        "Blue Chip Stocks": random.choice(["stable performance", "dividend increase", "modest growth", "sector rotation", "undervalued"]),
-        "Real Estate Investment Trust": random.choice(["interest-rate sensitive", "yield compression", "property value gains", "occupancy growth", "dividend cuts"]),
-        "Government Bonds": random.choice(["yield curve steepening", "inflation concerns", "safe haven demand", "rate hike fears", "historically low yields"]),
-        "High-Yield Savings": random.choice(["competitive rates", "introductory offers ending", "rate stability", "guaranteed returns", "underperforming inflation"]),
-        "Corporate Bonds": random.choice(["spread widening", "credit concerns", "yield opportunities", "rating upgrades", "liquidity issues"]),
-        
-        "Tech Growth Stocks": random.choice(["valuation concerns", "all-time high", "innovation breakthrough", "regulatory scrutiny", "sector dominance"]),
-        "Municipal Bonds": random.choice(["tax advantage appeal", "budget concerns", "infrastructure spending", "yield opportunities", "credit downgrades"]),
-        "Dividend Stocks": random.choice(["payout increases", "sustainable yields", "dividend cuts threat", "value opportunity", "sector rotation"]),
-        "International Stock Funds": random.choice(["currency advantage", "emerging market growth", "geopolitical concerns", "valuation discount", "global recovery"]),
-        "Health Sector ETF": random.choice(["breakthrough innovations", "regulatory changes", "pandemic resilience", "demographic tailwinds", "cost pressure"]),
-        "Mid-Cap Growth Fund": random.choice(["acquisition targets", "expansion phase", "sector leadership", "valuation sweet spot", "liquidity challenges"]),
-        
-        "Cryptocurrency": random.choice(["extreme volatility", "institutional adoption", "regulatory crackdown", "all-time high", "technical weakness"]),
-        "Emerging Markets": random.choice(["currency risks", "growth potential", "political instability", "demographic advantage", "commodity sensitivity"]),
-        "Commodities": random.choice(["supply constraints", "demand surge", "inventory buildup", "price ceiling concerns", "producer discipline"]),
-        "Peer-to-Peer Lending": random.choice(["default rate increase", "yield opportunity", "platform stability", "regulatory changes", "competitive returns"]),
-        "Small-Cap Stocks": random.choice(["growth cycle", "interest rate sensitivity", "overlooked value", "domestic focus", "liquidity concerns"]),
-        "Real Estate Development": random.choice(["cost overruns", "strong pre-sales", "supply constraints", "location premium", "regulatory hurdles"]),
-        
-        "Venture Capital": random.choice(["exit opportunity window", "unicorn potential", "funding round competition", "extended runways", "valuation resets"]),
-        "Hedge Funds": random.choice(["strategy convergence", "fee compression", "alpha generation", "liquidity terms", "redemption cycle"]),
-        "Private Equity": random.choice(["multiple expansion", "dry powder levels", "exit timing", "acquisition premiums", "leverage concerns"]),
-        "Options Trading": random.choice(["volatility spike", "premium compression", "contract liquidity", "expiration clustering", "implied vs. realized spread"]),
-        "Startup Incubator": random.choice(["cohort quality", "exit timeline extension", "mentor network strength", "funding ecosystem", "innovation cycle"]),
-        "Specialized REITs": random.choice(["sector tailwinds", "occupancy challenges", "development pipeline", "cap rate compression", "refinancing window"])
-    }
-    
-    # Draw market indicator legend
-    y_position = 160
-    pygame.draw.rect(SCREEN, LIGHT_GRAY, (50, y_position, WIDTH-100, 50), border_radius=5)
-    draw_text("MARKET INDICATORS & SHORT SELLING OPPORTUNITIES", WIDTH//2, y_position+15, main_font, DARK_BLUE)
-    draw_text("Note: Assets at 'all-time high' often revert to mean (80% chance) unless momentum continues", WIDTH//2, y_position+35, small_font, DARK_RED)
-    
-    # Draw market tips for current options
-    y_position = 230
-    for i, option in enumerate(options):
-        if option in market_trends:
-            trend = market_trends[option]
-            
-            # Determine market prediction and short selling advice
-            prediction_text = ""
-            short_sell_advice = ""
-            color = BLACK
-            
-            if trend == "all-time high":
-                prediction_text = "Prediction: 80% chance of mean reversion (decline), 20% chance of continued momentum"
-                short_sell_advice = "Advanced Strategy: Consider short selling to profit from potential decline"
-                color = DARK_RED
-            elif any(term in trend for term in ["uptrend", "growth", "gains", "increase", "opportunity", "resilience", "advantage"]):
-                prediction_text = "Prediction: Favorable outlook with positive growth potential"
-                short_sell_advice = "Advanced Strategy: Long position recommended over short selling"
-                color = DARK_GREEN
-            elif any(term in trend for term in ["decline", "bearish", "cuts", "concerns", "fear", "pressure", "weakness", "hurdles"]):
-                prediction_text = "Prediction: Challenges ahead may impact performance negatively"
-                short_sell_advice = "Advanced Strategy: Short selling might outperform long positions"
-                color = DARK_RED
-            else:
-                prediction_text = "Prediction: Mixed indicators suggest moderate volatility"
-                short_sell_advice = "Advanced Strategy: Research specific catalysts before short selling"
-                color = DARK_BLUE
-                
-            # Create panel for each option analysis
-            create_panel(WIDTH-100, 90, 50, y_position, color=(255, 255, 255), alpha=200, border=True)
-            
-            # Option name with decorative element
-            pygame.draw.circle(SCREEN, GOLD, (70, y_position+20), 8)
-            draw_text(option, WIDTH//2, y_position+20, main_font, DARK_BLUE)
-            
-            # Current trend
-            draw_text(f"Current Market Trend: {trend}", WIDTH//2, y_position+45, small_font, BLACK)
-            
-            # Prediction with appropriate color
-            draw_text(prediction_text, WIDTH//2, y_position+65, small_font, color)
-            
-            # Short selling advice
-            draw_text(short_sell_advice, WIDTH//2, y_position+85, small_font, ROYAL_BLUE)
-            
-            y_position += 100  # Space for next option
-    
-    # If there are more options than fit on screen, add scrolling instruction
-    if len(options) > 4:
-        draw_text("(Use mouse wheel to scroll for more assets)", WIDTH//2, HEIGHT-50, small_font, WHITE)
-    
-    # Continue button at bottom
-    continue_button = Button(WIDTH//2-100, HEIGHT-40, 200, 30, "Return to Investment Selection", LIGHT_BLUE, ROYAL_BLUE, WHITE)
-    continue_button.draw(SCREEN)
-    
-    pygame.display.update()
-    
-    # Wait for continue button click, with scroll support for many options
-    scroll_offset = 0
-    max_scroll = max(0, len(options) * 100 - 350)  # Limit scrolling based on content
-    
-    waiting = True
-    while waiting:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:  # Scroll up
-                    scroll_offset = max(0, scroll_offset - 30)
-                    # Redraw the screen with new scroll position
-                    # [Implement scrolling redraw logic here]
-                elif event.button == 5:  # Scroll down
-                    scroll_offset = min(max_scroll, scroll_offset + 30)
-                    # Redraw the screen with new scroll position
-                    # [Implement scrolling redraw logic here]
-            
-            mouse_pos = pygame.mouse.get_pos()
-            continue_button.check_hover(mouse_pos)
-            
-            if continue_button.is_clicked(mouse_pos, event):
-                waiting = False
-            
-            # Redraw button with hover effect
-            continue_button.draw(SCREEN)
-            pygame.display.update()
-            pygame.time.delay(30)
-    
-# Handle common button events - quits and restart
-def handle_button_events(buttons, return_on_click=None, include_restart=True, include_quit=True):
-    waiting = True
-    while waiting:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            
-            mouse_pos = pygame.mouse.get_pos()
-            
-            # Check each button
-            for name, button in buttons.items():
-                button.check_hover(mouse_pos)
-                if button.is_clicked(mouse_pos, event):
-                    if name == "quit" and include_quit:
-                        pygame.quit()
-                        sys.exit()
-                    elif name == "restart" and include_restart:
-                        return "RESTART"
-                    elif return_on_click and name in return_on_click:
-                        waiting = False
-                        return name
-                    elif name == return_on_click:
-                        waiting = False
-                        return True
-            
-            # Redraw buttons to show hover state
-            for button in buttons.values():
-                button.draw(SCREEN)
-            pygame.display.update()
-            pygame.time.delay(30)
-    
-    return False  # Default return if no specific return requested
-
-# Button class defines the properties and behaviors of clickable buttons in the game
+# Button class
 class Button:
     def __init__(self, x, y, width, height, text, color, hover_color, text_color=BLACK):
-        self.rect = pygame.Rect(x, y, width, height)  # Define the button's rectangular shape (position and size)
-        self.text = text  # The text displayed on the button
-        self.color = color  # The color of the button in normal state
-        self.hover_color = hover_color  # The color when the mouse hovers over the button
-        self.text_color = text_color  # Color of the text on the button
-        self.is_hovered = False  # This will keep track of whether the button is being hovered over by the mouse
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.color = color
+        self.hover_color = hover_color
+        self.text_color = text_color
+        self.is_hovered = False
         
     def draw(self, surface):
-        # Draw the button with the appropriate color based on hover state
         color = self.hover_color if self.is_hovered else self.color
-        pygame.draw.rect(surface, color, self.rect, border_radius=10)  # Draw the button with rounded corners
-        pygame.draw.rect(surface, BLACK, self.rect, 2, border_radius=10)  # Border for the button
+        pygame.draw.rect(surface, color, self.rect, border_radius=10)
+        pygame.draw.rect(surface, BLACK, self.rect, 2, border_radius=10)  # Border
         
-        # Render the text on the button and center it within the button
         text_surface = button_font.render(self.text, True, self.text_color)
         text_rect = text_surface.get_rect(center=self.rect.center)
-        surface.blit(text_surface, text_rect)  # Display the text on the button
+        surface.blit(text_surface, text_rect)
         
     def check_hover(self, pos):
-        # Check if the mouse is hovering over the button
-        self.is_hovered = self.rect.collidepoint(pos)  # Updates hover status based on mouse position
+        self.is_hovered = self.rect.collidepoint(pos)
         return self.is_hovered
         
     def is_clicked(self, pos, event):
-        # Check if the button has been clicked
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            return self.rect.collidepoint(pos)  # Returns True if the click happens within the button's area
+            return self.rect.collidepoint(pos)
         return False
 
-# Function to draw text on the screen, used throughout the game for displaying messages
-def draw_text(text, x, y, font=main_font, color=BLACK):
-    text_surface = font.render(text, True, color)  # Create the text surface with the desired font and color
-    text_rect = text_surface.get_rect(center=(x, y))  # Position the text at the specified (x, y) coordinates
-    SCREEN.blit(text_surface, text_rect)  # Blit (draw) the text onto the screen
+# Function to add navigation buttons to screens
+def add_navigation_buttons(screen, show_back=True):
+    # Quit button - top-right corner
+    quit_button = Button(WIDTH - 110, 20, 90, 40, "Quit", RED, LIGHT_CORAL, WHITE)
+    quit_button.draw(screen)
+    
+    # Restart button - top-right second position
+    restart_button = Button(WIDTH - 210, 20, 90, 40, "Restart", BLUE, LIGHT_BLUE, WHITE)
+    restart_button.draw(screen)
+    
+    # Back button (if needed) - top-left corner
+    back_button = None
+    if show_back:
+        back_button = Button(20, 20, 90, 40, "Back", GRAY, LIGHT_GRAY)
+        back_button.draw(screen)
+    
+    return quit_button, restart_button, back_button
 
-# Display an immersive narrative welcome message that introduces the financial journey
-def welcome_message():
-    # Draw gradient background for a professional look
-    draw_gradient_background((70, 130, 180), (25, 25, 112))  # Steel blue to midnight blue
+# Handle navigation button clicks
+def handle_navigation(quit_button, restart_button, back_button, mouse_pos, event):
+    if quit_button.is_clicked(mouse_pos, event):
+        pygame.quit()
+        sys.exit()
+    elif restart_button.is_clicked(mouse_pos, event):
+        return "restart"
+    elif back_button and back_button.is_clicked(mouse_pos, event):
+        return "back"
+    return None
+
+# Function to draw text on screen
+def draw_text(text, x, y, font=main_font, color=BLACK):
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect(center=(x, y))
+    SCREEN.blit(text_surface, text_rect)
+
+# Function to draw multi-line text
+def draw_multiline_text(text, x, y, font=main_font, color=BLACK, line_height=30, max_width=700):
+    words = text.split()
+    lines = []
+    current_line = []
     
-    # Draw elegant title header
-    pygame.draw.rect(SCREEN, GOLD, (50, 40, WIDTH-100, 70), border_radius=15)
-    pygame.draw.rect(SCREEN, BLACK, (50, 40, WIDTH-100, 70), 2, border_radius=15)
+    for word in words:
+        temp_line = ' '.join(current_line + [word])
+        temp_surface = font.render(temp_line, True, color)
+        
+        if temp_surface.get_width() > max_width:
+            lines.append(' '.join(current_line))
+            current_line = [word]
+        else:
+            current_line.append(word)
     
-    # Draw title with enhanced shadow effect
-    title_shadow = title_font.render("FORTUNE'S PATH", True, BLACK)
-    title_rect_shadow = title_shadow.get_rect(center=(WIDTH // 2 + 3, 75 + 3))
-    SCREEN.blit(title_shadow, title_rect_shadow)
+    if current_line:
+        lines.append(' '.join(current_line))
     
-    title_surface = title_font.render("FORTUNE'S PATH", True, GOLD)
-    title_rect = title_surface.get_rect(center=(WIDTH // 2, 75))
-    SCREEN.blit(title_surface, title_rect)
+    for i, line in enumerate(lines):
+        text_surface = font.render(line, True, color)
+        text_rect = text_surface.get_rect(center=(x, y + i * line_height))
+        SCREEN.blit(text_surface, text_rect)
+
+# Welcome screen with instructions
+def show_instructions():
+    SCREEN.fill(LIGHT_BLUE)
+    draw_text("Welcome to the Investment Story Game!", WIDTH // 2, 60, font=title_font, color=DARK_BLUE)
     
-    # Subtitle with elegant font
-    subtitle = "A JOURNEY TO FINANCIAL WISDOM"
-    draw_text(subtitle, WIDTH // 2, 105, font=small_font, color=WHITE)
-    
-    # Create an ornate story scroll
-    create_panel(WIDTH-100, 250, 50, 130, color=(255, 252, 240), alpha=200, border=True)
-    
-    # Gold decorative elements at corners of the story panel
-    coin_positions = [(60, 140), (WIDTH-60, 140), (60, 370), (WIDTH-60, 370)]
-    for pos in coin_positions:
-        pygame.draw.circle(SCREEN, GOLD, pos, 10)
-        pygame.draw.circle(SCREEN, BLACK, pos, 10, 1)
-    
-    # Draw story header
-    pygame.draw.rect(SCREEN, (139, 69, 19), (100, 140, WIDTH-200, 30), border_radius=5)  # Brown header
-    draw_text("YOUR FINANCIAL JOURNEY BEGINS", WIDTH // 2, 155, font=small_font, color=WHITE)
-    
-    # Narrative introduction with more engaging story elements
-    story_lines = [
-        "The year is 2030. After years of financial struggles, fortune smiles upon you.",
-        "A distant relative, a legendary investor, has left you $10,000 in their will.",
-        "",
-        "But this is more than just money - it's an opportunity to prove yourself.",
-        "The inheritance comes with a challenge: turn this seed capital into $30,000",
-        "within a limited time, using your financial acumen and market intuition.",
-        "",
-        "Your relative's journal reveals that success will require mastering the delicate",
-        "balance of risk and reward, understanding market patterns, and making",
-        "strategic decisions even when faced with uncertainty."
+    instructions = [
+        "• You've inherited $10,000 from a distant relative.",
+        "• Your goal is to grow your wealth through smart investing.",
+        "• You can invest in stocks, bonds, savings accounts, or emergency funds.",
+        "• Use the Market Research button to get hints about market trends.",
+        "• You can either buy (go long) or short sell investments:",
+        "  - BUYING (LONG): You profit when prices go up.",
+        "  - SHORT SELLING: You profit when prices go down.",
+        "• Each investment decision will affect your wealth.",
+        "• Random events may dramatically change your financial situation.",
+        "• Your goal is to reach $100,000 without going bankrupt.",
+        "• If your wealth falls below $0, you lose the game."
     ]
     
-    # Display story with proper spacing
-    for i, line in enumerate(story_lines):
-        draw_text(line, WIDTH // 2, 185 + (i * 20), font=small_font, color=DARK_BLUE)
+    y_pos = 130
+    for instruction in instructions:
+        text_surface = main_font.render(instruction, True, BLACK)
+        text_rect = text_surface.get_rect(topleft=(100, y_pos))
+        SCREEN.blit(text_surface, text_rect)
+        y_pos += 35
     
-    # Create a panel for the game mechanics
-    create_panel(WIDTH-120, 120, 60, 390, color=(230, 230, 250), alpha=200, border=True)
-    
-    # Skill-based gameplay elements
-    draw_text("YOUR FINANCIAL TOOLKIT:", WIDTH // 2, 410, font=subtitle_font, color=DARK_BLUE)
-    
-    skill_elements = [
-        "• Market Analysis: Read economic indicators to predict investment outcomes",
-        "• Risk Management: Balance high-risk/high-reward with safer positions",
-        "• Strategic Timing: Know when to hold positions and when to secure profits",
-        "• Adaptive Thinking: Respond to unexpected market events and opportunities"
-    ]
-    
-    # Display skill elements
-    for i, element in enumerate(skill_elements):
-        draw_text(element, WIDTH // 2, 435 + (i * 18), font=small_font, color=DARK_BLUE)
-    
-    # Create victory/failure conditions panel
-    create_panel(WIDTH-300, 60, 150, 520, color=(255, 223, 0, 120), border=True)  # Gold panel
-    
-    # Game objective with clearer success/failure states
-    draw_text("OBJECTIVE: Grow $10,000 to $30,000", WIDTH // 2, 535, font=main_font, color=DARK_GREEN)
-    draw_text("WARNING: Bankruptcy means game over", WIDTH // 2, 555, font=main_font, color=DARK_RED)
-    
-    # Create narrative-themed buttons
-    start_button = Button(WIDTH // 2 - 130, HEIGHT - 70, 260, 50, "Begin Your Investment Saga", GOLD, LIGHT_YELLOW, BLACK)
-    quit_button = Button(WIDTH - 120, HEIGHT - 40, 100, 30, "Exit", RED, LIGHT_CORAL, WHITE)
-    
-    # Draw buttons
+    # Add start button
+    start_button = Button(WIDTH // 2 - 100, 600, 200, 50, "Start Game", GREEN, LIGHT_GREEN)
     start_button.draw(SCREEN)
-    quit_button.draw(SCREEN)
     
-    pygame.display.update()  # Update the display to show the message
+    # Add navigation buttons (no back button on first screen)
+    quit_button, restart_button, _ = add_navigation_buttons(SCREEN, show_back=False)
     
-    # Wait for player to click
-    waiting = True
-    while waiting:
+    pygame.display.update()
+    
+    # Wait for user to click start
+    while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -387,1532 +199,1198 @@ def welcome_message():
             mouse_pos = pygame.mouse.get_pos()
             start_button.check_hover(mouse_pos)
             quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
             
             if start_button.is_clicked(mouse_pos, event):
-                waiting = False
-            elif quit_button.is_clicked(mouse_pos, event):
-                pygame.quit()
-                sys.exit()
+                return
             
-            # Redraw buttons to show hover state
-            start_button.draw(SCREEN)
-            quit_button.draw(SCREEN)
-            pygame.display.update()
-            pygame.time.delay(30)
+            # Handle navigation buttons
+            action = handle_navigation(quit_button, restart_button, None, mouse_pos, event)
+            if action == "restart":
+                return
+        
+        start_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
 
-# Function to get the player's choice from a list of options with skill-based decision making
-def get_choice(options, prompt="Choose an option:"):
-    # Draw a gradient background that reflects strategic decision-making
-    draw_gradient_background((230, 240, 255), (210, 230, 255))  # Professional blue gradient
+# Function to display options and get user choice
+def get_choice(options, prompt="What will you do:", previous_screen=None):
+    SCREEN.fill(LIGHT_YELLOW)
+    draw_text(prompt, WIDTH // 2, 100, font=title_font, color=BROWN)
     
-    # Draw header with investment theme
-    draw_header(prompt, title_color=WHITE, background_color=ROYAL_BLUE, y_pos=30)
-    
-    # Create main content panel for investment choices
-    create_panel(WIDTH-60, 420, 30, 110, color=(255, 255, 255), alpha=200, border=True)
-    
-    # Add market context to make decisions more skill-based
-    market_contexts = [
-        "Market analysts are showing cautious optimism in most sectors.",
-        "Economic indicators suggest moderate growth potential ahead.",
-        "Investors are seeking both growth and stability in uncertain times.",
-        "Technical analysis shows potential opportunities in volatile segments.",
-        "Recent sector rotations have shifted momentum across markets.",
-        "Industry disruption has created both risks and opportunities.",
-        "Global economic policies continue influencing market trajectories.",
-        "Inflation concerns are shifting investor preferences significantly."
-    ]
-    
-    # Select random market context (could be made more strategic in future versions)
-    market_context = random.choice(market_contexts)
-    
-    # Draw market intelligence header
-    pygame.draw.rect(SCREEN, (50, 90, 160), (50, 120, WIDTH-100, 30), border_radius=5)
-    draw_text("MARKET INTELLIGENCE", WIDTH//2, 135, font=small_font, color=WHITE)
-    
-    # Display current market context to inform decision
-    draw_text(market_context, WIDTH//2, 160, font=main_font, color=DARK_BLUE)
-    
-    # Create and draw sentiment indicator to enhance skill-based decision making
-    sentiment_indicators = {
-        "Stock Market Index Fund": random.uniform(0.6, 0.9) if "Stock Market Index Fund" in options else None,
-        "Blue Chip Stocks": random.uniform(0.5, 0.8) if "Blue Chip Stocks" in options else None,
-        "Real Estate Investment Trust": random.uniform(0.4, 0.8) if "Real Estate Investment Trust" in options else None,
-        "Government Bonds": random.uniform(0.7, 0.9) if "Government Bonds" in options else None,
-        "High-Yield Savings": random.uniform(0.8, 0.95) if "High-Yield Savings" in options else None,
-        "Corporate Bonds": random.uniform(0.6, 0.85) if "Corporate Bonds" in options else None,
-        
-        "Tech Growth Stocks": random.uniform(0.3, 0.9) if "Tech Growth Stocks" in options else None,
-        "Municipal Bonds": random.uniform(0.65, 0.85) if "Municipal Bonds" in options else None,
-        "Dividend Stocks": random.uniform(0.55, 0.8) if "Dividend Stocks" in options else None,
-        "International Stock Funds": random.uniform(0.4, 0.75) if "International Stock Funds" in options else None,
-        "Health Sector ETF": random.uniform(0.5, 0.85) if "Health Sector ETF" in options else None,
-        "Mid-Cap Growth Fund": random.uniform(0.45, 0.8) if "Mid-Cap Growth Fund" in options else None,
-        
-        "Cryptocurrency": random.uniform(0.2, 0.9) if "Cryptocurrency" in options else None,
-        "Emerging Markets": random.uniform(0.3, 0.8) if "Emerging Markets" in options else None,
-        "Commodities": random.uniform(0.4, 0.75) if "Commodities" in options else None,
-        "Peer-to-Peer Lending": random.uniform(0.4, 0.7) if "Peer-to-Peer Lending" in options else None,
-        "Small-Cap Stocks": random.uniform(0.35, 0.85) if "Small-Cap Stocks" in options else None,
-        "Real Estate Development": random.uniform(0.4, 0.75) if "Real Estate Development" in options else None,
-        
-        "Venture Capital": random.uniform(0.2, 0.9) if "Venture Capital" in options else None,
-        "Hedge Funds": random.uniform(0.3, 0.85) if "Hedge Funds" in options else None,
-        "Private Equity": random.uniform(0.25, 0.9) if "Private Equity" in options else None,
-        "Options Trading": random.uniform(0.15, 0.95) if "Options Trading" in options else None,
-        "Startup Incubator": random.uniform(0.2, 0.9) if "Startup Incubator" in options else None,
-        "Specialized REITs": random.uniform(0.4, 0.8) if "Specialized REITs" in options else None
-    }
-    
-    # Draw research recommendation panel
-    draw_text("Expert Sentiment Analysis:", WIDTH//2, 185, font=main_font, color=DARK_BLUE)
-    
-    # Draw vertical separator line
-    pygame.draw.line(SCREEN, LIGHT_GRAY, (WIDTH//2, 195), (WIDTH//2, 195 + 20 * len(options)), 2)
-    
-    # Draw analyst sentiment header
-    draw_text("Bearish", WIDTH//2 - 120, 205, font=small_font, color=DARK_RED)
-    draw_text("Neutral", WIDTH//2, 205, font=small_font, color=GRAY)
-    draw_text("Bullish", WIDTH//2 + 120, 205, font=small_font, color=DARK_GREEN)
-    
-    # Create styled option buttons with sentiment indicators
     buttons = []
     for idx, option in enumerate(options):
-        # Y position for this option
-        y_pos = 230 + idx * 70
-        
-        # Create option button
-        button = Button(WIDTH//2 - 150, y_pos, 300, 50, option, LIGHT_GRAY, WHITE, DARK_BLUE)
+        y_pos = 150 + idx * 60
+        button = Button(WIDTH // 2 - 150, y_pos, 300, 50, option, WHITE, LIGHT_GRAY)
         buttons.append(button)
         button.draw(SCREEN)
-        
-        # Draw sentiment indicator for this option
-        if option in sentiment_indicators and sentiment_indicators[option] is not None:
-            sentiment = sentiment_indicators[option]
-            
-            # Background bar
-            pygame.draw.rect(SCREEN, LIGHT_GRAY, (WIDTH//2 - 130, y_pos + 55, 260, 10), border_radius=5)
-            
-            # Colored indicator - protect against None values
-            if sentiment is not None:
-                indicator_width = int(260 * sentiment)
-                
-                # Color based on sentiment value
-                if sentiment < 0.4:
-                    color = DARK_RED
-                elif sentiment < 0.6:
-                    color = (218, 165, 32)  # Gold/yellow
-                else:
-                    color = DARK_GREEN
-                
-                # Only draw if sentiment is valid
-                pygame.draw.rect(SCREEN, color, (WIDTH//2 - 130, y_pos + 55, indicator_width, 10), border_radius=5)
-                
-                # Draw marker for better visualization
-                pygame.draw.circle(SCREEN, BLACK, (WIDTH//2 - 130 + indicator_width, y_pos + 60), 5)
     
-    # Add skill-based research button and other controls
-    research_button = Button(WIDTH//2 - 70, 480, 140, 40, "Market Research", LIGHT_BLUE, ROYAL_BLUE, WHITE)
-    quit_button = Button(WIDTH-130, 530, 100, 40, "Exit Market", RED, LIGHT_CORAL, WHITE)
-    restart_button = Button(30, 530, 100, 40, "New Journey", GREEN, LIGHT_GREEN, BLACK)
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
     
-    # Draw buttons
-    research_button.draw(SCREEN)
-    quit_button.draw(SCREEN)
-    restart_button.draw(SCREEN)
+    pygame.display.update()
     
-    pygame.display.update()  # Update the display to show the interface
-    
-    # Loop to wait for the player to make a choice
+    # Wait for user selection
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()  # Exit the game if the player closes the window
-                sys.exit()
-            
-            mouse_pos = pygame.mouse.get_pos()  # Get the current mouse position on the screen
-            
-            # Check option buttons
-            for idx, button in enumerate(buttons):
-                button.check_hover(mouse_pos)  # Check if the mouse is hovering over any button
-                if button.is_clicked(mouse_pos, event):  # Check if a button is clicked
-                    return options[idx]  # Return the option associated with the clicked button
-            
-            # Check research, quit and restart buttons
-            research_button.check_hover(mouse_pos)
-            quit_button.check_hover(mouse_pos)
-            restart_button.check_hover(mouse_pos)
-            
-            if research_button.is_clicked(mouse_pos, event):
-                # Show research panel with deeper analysis to enhance skill-based decision making
-                show_market_research(options)
-                
-                # Redraw the original screen after research
-                draw_gradient_background((230, 240, 255), (210, 230, 255))
-                draw_header(prompt, title_color=WHITE, background_color=ROYAL_BLUE, y_pos=30)
-                create_panel(WIDTH-60, 420, 30, 110, color=(255, 255, 255), alpha=200, border=True)
-                pygame.draw.rect(SCREEN, (50, 90, 160), (50, 120, WIDTH-100, 30), border_radius=5)
-                draw_text("MARKET INTELLIGENCE", WIDTH//2, 135, font=small_font, color=WHITE)
-                draw_text(market_context, WIDTH//2, 160, font=main_font, color=DARK_BLUE)
-                draw_text("Expert Sentiment Analysis:", WIDTH//2, 185, font=main_font, color=DARK_BLUE)
-                pygame.draw.line(SCREEN, LIGHT_GRAY, (WIDTH//2, 195), (WIDTH//2, 195 + 20 * len(options)), 2)
-                draw_text("Bearish", WIDTH//2 - 120, 205, font=small_font, color=DARK_RED)
-                draw_text("Neutral", WIDTH//2, 205, font=small_font, color=GRAY)
-                draw_text("Bullish", WIDTH//2 + 120, 205, font=small_font, color=DARK_GREEN)
-                
-                # Redraw buttons and indicators
-                for idx, option in enumerate(options):
-                    y_pos = 230 + idx * 70
-                    buttons[idx].draw(SCREEN)
-                    
-                    if option in sentiment_indicators and sentiment_indicators[option] is not None:
-                        sentiment = sentiment_indicators[option]
-                        pygame.draw.rect(SCREEN, LIGHT_GRAY, (WIDTH//2 - 130, y_pos + 55, 260, 10), border_radius=5)
-                        
-                        # Protect against None values
-                        if sentiment is not None:
-                            indicator_width = int(260 * sentiment)
-                            
-                            # Color based on sentiment
-                            if sentiment < 0.4:
-                                color = DARK_RED
-                            elif sentiment < 0.6:
-                                color = (218, 165, 32)  # Gold
-                            else:
-                                color = DARK_GREEN
-                                
-                            pygame.draw.rect(SCREEN, color, (WIDTH//2 - 130, y_pos + 55, indicator_width, 10), border_radius=5)
-                            pygame.draw.circle(SCREEN, BLACK, (WIDTH//2 - 130 + indicator_width, y_pos + 60), 5)
-                
-                research_button.draw(SCREEN)
-                quit_button.draw(SCREEN)
-                restart_button.draw(SCREEN)
-                pygame.display.update()
-            
-            elif quit_button.is_clicked(mouse_pos, event):
                 pygame.quit()
                 sys.exit()
-            elif restart_button.is_clicked(mouse_pos, event):
-                return "RESTART"  # Special return value to indicate restart
+            
+            mouse_pos = pygame.mouse.get_pos()
+            
+            for idx, button in enumerate(buttons):
+                button.check_hover(mouse_pos)
+                if button.is_clicked(mouse_pos, event):
+                    return options[idx]
+            
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
+            
+            # Handle navigation buttons
+            action = handle_navigation(quit_button, restart_button, back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back" and previous_screen:
+                return "back"
         
         # Redraw buttons with hover effects
         for button in buttons:
             button.draw(SCREEN)
         
-        research_button.draw(SCREEN)
         quit_button.draw(SCREEN)
         restart_button.draw(SCREEN)
+        back_button.draw(SCREEN)
         
-        pygame.display.update()  # Update the display to reflect any changes
-        pygame.time.delay(30)  # Small delay to prevent high CPU usage
+        pygame.display.update()
+        pygame.time.delay(30)
 
-# This function simulates the player's journey and their investments
-def journey_progress(wealth, investment_history, journey_round=1):
-    # Draw gradient background based on journey round
-    gradient_colors = [
-        ((173, 216, 230), (240, 255, 240)),  # Round 1: Light blue to green
-        ((240, 255, 240), (255, 250, 205)),  # Round 2: Light green to yellow
-        ((255, 250, 205), (230, 230, 250)),  # Round 3: Light yellow to lavender
-        ((230, 230, 250), (255, 228, 225))   # Round 4+: Lavender to rose
-    ]
-    color_index = min(journey_round-1, 3)
-    draw_gradient_background(*gradient_colors[color_index])
+# Market research screen
+def market_research(wealth):
+    global current_news
     
-    # Chapter titles with educational themes
-    titles = ["Chapter 1: Building Financial Foundations", 
-              "Chapter 2: Risk and Reward Balance", 
-              "Chapter 3: Portfolio Diversification", 
-              "Chapter 4: Advanced Market Analysis", 
-              "Chapter 5: Long-term Wealth Strategy"]
-    title = titles[min(journey_round-1, 4)]
+    SCREEN.fill(LIGHT_GREY)
+    draw_text("Market Research", WIDTH // 2, 60, font=title_font, color=DARK_BLUE)
+    draw_text(f"Current Wealth: ${wealth:.2f}", WIDTH // 2, 100)
     
-    # Draw header with title using helper function
-    draw_header(title, title_color=WHITE)
+    # Generate or display current news
+    if not current_news:
+        current_news = random.choice(market_news)
     
-    # Display wealth with helper function
-    display_wealth(wealth, WIDTH//2, 120)
+    draw_text("BREAKING NEWS:", WIDTH // 2, 150, color=DARK_RED, font=title_font)
+    draw_multiline_text(current_news["headline"], WIDTH // 2, 200, color=DARK_RED)
     
-    # Story narrative panel with helper function
-    create_panel(WIDTH-200, 100, 100, 200, color=(255, 255, 255), alpha=180, border=True)
+    # Display sector impacts
+    draw_text("Market Impacts:", WIDTH // 2, 250, font=title_font)
     
-    # Dynamic narratives based on wealth and journey progress - more educational
-    story_options = {
-        1: [
-            "Your financial advisor introduces investment fundamentals.",
-            "Learning the basics of risk vs. reward in financial markets.",
-            "First steps in understanding market dynamics.",
-            "Beginning your path to financial literacy."
-        ],
-        2: {
-            "success": [
-                "Your early success opens doors to new investment strategies.",
-                "With growing capital, you explore more sophisticated options.",
-                "Your advisor suggests broadening your investment horizons.",
-                "Your initial gains allow for more diverse opportunities."
-            ],
-            "neutral": [
-                "Steady progress teaches patience in long-term investing.",
-                "Balancing risk continues to be a key learning experience.",
-                "Your portfolio shows the importance of perseverance.",
-                "The financial journey requires both caution and courage."
-            ],
-            "setback": [
-                "Early setbacks offer valuable lessons in market resilience.",
-                "Despite challenges, your investment education continues.",
-                "Learning recovery strategies after market fluctuations.",
-                "Understanding that losses can be stepping stones to knowledge."
-            ]
-        },
-        3: {
-            "success": [
-                "Your growing portfolio attracts attention from expert advisors.",
-                "As your wealth grows, so does your financial acumen.",
-                "Your success demonstrates your developing investment skill.",
-                "Your wealth accumulation shows strategic thinking."
-            ],
-            "struggling": [
-                "Diversification becomes crucial for portfolio recovery.",
-                "Advanced strategies may help overcome previous setbacks.",
-                "Seeking specialized advice to strengthen your position.",
-                "Exploring opportunities for financial course correction."
-            ]
-        },
-        4: {
-            "expert": [
-                "Your investment acumen approaches professional level!",
-                "Your portfolio management skills show remarkable growth.",
-                "You're developing the mindset of a seasoned investor.",
-                "Your financial decisions reflect sophisticated understanding."
-            ],
-            "solid": [
-                "Your balanced approach demonstrates sound investment principles.",
-                "Consistent strategy is paying dividends in your financial journey.",
-                "Your portfolio reflects thoughtful risk management.",
-                "Your investment discipline continues to yield results."
-            ],
-            "struggling": [
-                "Despite challenges, perseverance is key to investment success.",
-                "Even veteran investors face market headwinds occasionally.",
-                "Strategic repositioning may help recovery efforts.",
-                "This challenging phase tests your investment resolve."
-            ]
-        }
-    }
-    
-    # Select appropriate story based on round and performance
-    if journey_round == 1:
-        story = random.choice(story_options[1])
-    elif journey_round == 2:
-        if wealth > 12000:
-            story = random.choice(story_options[2]["success"])
-        elif wealth < 8000:
-            story = random.choice(story_options[2]["setback"])
-        else:
-            story = random.choice(story_options[2]["neutral"])
-    elif journey_round == 3:
-        if wealth > 15000:
-            story = random.choice(story_options[3]["success"])
-        else:
-            story = random.choice(story_options[3]["struggling"])
-    else:
-        if wealth > 20000:
-            story = random.choice(story_options[4]["expert"])
-        elif wealth > 10000:
-            story = random.choice(story_options[4]["solid"])
-        else:
-            story = random.choice(story_options[4]["struggling"])
-    
-    # Draw the story narrative with word wrapping
-    words = story.split()
-    if len(words) > 8:  # If story is long enough to need wrapping
-        first_line = " ".join(words[:8])
-        second_line = " ".join(words[8:])
-        draw_text(first_line, WIDTH//2, 230, main_font, DARK_BLUE)
-        draw_text(second_line, WIDTH//2, 255, main_font, DARK_BLUE)
-    else:
-        draw_text(story, WIDTH//2, 240, main_font, DARK_BLUE)
-    
-    # Lesson panel - educational component
-    create_panel(WIDTH-200, 50, 100, 280, color=(230, 230, 250), alpha=200, border=True)
-    
-    # Educational lessons based on round
-    lessons = [
-        "Lesson: Diversification reduces overall investment risk.",
-        "Lesson: Higher potential returns typically come with higher risk.",
-        "Lesson: Market timing is difficult; consistent strategy often wins.",
-        "Lesson: Economic cycles affect different investments differently.",
-        "Lesson: Compounding returns grow your wealth exponentially over time.",
-        "Lesson: Regular portfolio rebalancing maintains your risk profile."
+    impact_info = [
+        f"Technology: {'▲' if current_news['tech'] > 0 else '▼' if current_news['tech'] < 0 else '◆'}",
+        f"Real Estate: {'▲' if current_news['real_estate'] > 0 else '▼' if current_news['real_estate'] < 0 else '◆'}",
+        f"Energy: {'▲' if current_news['energy'] > 0 else '▼' if current_news['energy'] < 0 else '◆'}",
+        f"Biotech: {'▲' if current_news['biotech'] > 0 else '▼' if current_news['biotech'] < 0 else '◆'}",
+        f"Bonds: {'▲' if current_news['bonds'] > 0 else '▼' if current_news['bonds'] < 0 else '◆'}"
     ]
     
-    draw_text(random.choice(lessons), WIDTH//2, 305, main_font, DARK_BLUE)
+    y_pos = 300
+    for info in impact_info:
+        draw_text(info, WIDTH // 2, y_pos)
+        y_pos += 40
     
-    # Create buttons
-    buttons = {
-        "continue": Button(WIDTH//2-100, HEIGHT-100, 200, 50, "Continue Journey", LIGHT_BLUE, ROYAL_BLUE, WHITE),
-        "quit": Button(WIDTH-150, HEIGHT-60, 120, 40, "Quit Game", RED, LIGHT_CORAL, BLACK),
-        "restart": Button(30, HEIGHT-60, 120, 40, "Restart", GREEN, LIGHT_GREEN, BLACK)
-    }
+    # Add tips for investment strategy
+    draw_text("Investment Tip:", WIDTH // 2, 500, font=title_font)
     
-    for button in buttons.values():
-        button.draw(SCREEN)
+    # Generate a tip based on the current news
+    if any(value > 10 for key, value in current_news.items() if key != "headline"):
+        tip = "Consider going LONG on sectors with ▲ and SHORT on sectors with ▼"
+    elif any(value < -10 for key, value in current_news.items() if key != "headline"):
+        tip = "Consider going SHORT on sectors with ▼ and LONG on sectors with ▲"
+    else:
+        tip = "Market changes are subtle. Consider safer investments like bonds or savings."
+    
+    draw_multiline_text(tip, WIDTH // 2, 540)
+    
+    # Add back button
+    back_button = Button(WIDTH // 2 - 100, 600, 200, 50, "Back to Main Menu", LIGHT_CORAL, RED, WHITE)
+    back_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, nav_back_button = add_navigation_buttons(SCREEN)
     
     pygame.display.update()
     
-    # Use helper function for button handling
-    result = handle_button_events(buttons, return_on_click="continue")
-    if result == "RESTART":
-        return -999999  # Special code to signal restart
+    # Wait for user to click back
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            back_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            nav_back_button.check_hover(mouse_pos)
+            
+            if back_button.is_clicked(mouse_pos, event):
+                return
+            
+            # Handle navigation buttons
+            action = handle_navigation(quit_button, restart_button, nav_back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back":
+                return
+        
+        back_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        nav_back_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
 
-    # Investment pools with educational descriptions
-    investment_pools = {
-        "beginner": {
-            "Stock Market Index Fund": ("Low-cost fund that tracks entire market. Good first investment.", 
-                                      random.randint(-8, 20)),
-            "Government Bonds": ("Government-backed debt securities. Very safe, modest returns.", 
-                                random.randint(2, 7)),
-            "Real Estate Investment Trust": ("Fund that owns income-producing properties. Steady dividends.", 
-                                           random.randint(-5, 15)),
-            "Blue Chip Stocks": ("Shares in established, financially sound companies.", 
-                                random.randint(-10, 25)),
-            "High-Yield Savings": ("Bank savings with better than average interest. Very safe.", 
-                                  random.randint(1, 4)),
-            "Corporate Bonds": ("Debt issued by companies. Higher yield than government bonds.", 
-                               random.randint(3, 9))
-        },
-        
-        "intermediate": {
-            "Tech Growth Stocks": ("Companies with above-average growth potential in technology.", 
-                                 random.randint(-20, 40)),
-            "Municipal Bonds": ("Local government debt with tax advantages.", 
-                              random.randint(2, 6)),
-            "Dividend Stocks": ("Companies that share profits with shareholders regularly.", 
-                              random.randint(-5, 15)),
-            "International Stock Funds": ("Diversified exposure to global markets.", 
-                                        random.randint(-15, 30)),
-            "Health Sector ETF": ("Exchange-traded fund focusing on healthcare companies.", 
-                                random.randint(-12, 25)),
-            "Mid-Cap Growth Fund": ("Fund investing in medium-sized growing companies.", 
-                                  random.randint(-10, 22))
-        },
-        
-        "advanced": {
-            "Cryptocurrency": ("Digital currency using blockchain technology. Highly volatile.", 
-                             random.randint(-50, 80)),
-            "Emerging Markets": ("Investments in developing economies. High risk/reward.", 
-                               random.randint(-25, 45)),
-            "Commodities": ("Raw materials like gold, oil, or agricultural products.", 
-                          random.randint(-20, 35)),
-            "Peer-to-Peer Lending": ("Direct loans to individuals for interest income.", 
-                                    random.randint(-10, 20)),
-            "Small-Cap Stocks": ("Shares in smaller companies with growth potential.", 
-                               random.randint(-30, 50)),
-            "Real Estate Development": ("Direct investment in property development projects.", 
-                                      random.randint(-25, 40))
-        },
-        
-        "expert": {
-            "Venture Capital": ("Investing in early-stage companies with high potential.", 
-                              random.randint(-60, 90)),
-            "Hedge Funds": ("Actively managed investment pools using advanced strategies.", 
-                          random.randint(-40, 60)),
-            "Private Equity": ("Direct investment in private companies, not publicly traded.", 
-                             random.randint(-30, 70)),
-            "Options Trading": ("Contracts giving right to buy/sell assets at set prices.", 
-                              random.randint(-70, 100)),
-            "Startup Incubator": ("Supporting multiple early-stage companies with capital and resources.", 
-                                random.randint(-50, 120)),
-            "Specialized REITs": ("Real estate trusts in specific sectors like data centers.", 
-                                random.randint(-20, 40))
-        }
-    }
+# Get investment amount
+def get_investment_amount(wealth, investment_type):
+    SCREEN.fill(LIGHT_YELLOW)
+    draw_text(f"How much would you like to invest in {investment_type}?", WIDTH // 2, 100, font=title_font)
+    draw_text(f"Current wealth: ${wealth:.2f}", WIDTH // 2, 150)
     
-    # Select investment pool based on journey round
-    if journey_round == 1:
-        pool = investment_pools["beginner"]
-    elif journey_round == 2:
-        pool = investment_pools["intermediate"]
-    elif journey_round == 3:
-        pool = investment_pools["advanced"]
-    else:
-        pool = investment_pools["expert"]
+    # Add input box for amount
+    input_rect = pygame.Rect(WIDTH // 2 - 150, 200, 300, 50)
+    input_color = LIGHT_GRAY
+    input_active = True
+    input_text = ""
     
-    # Select 4 random investments from the appropriate pool
-    investment_names = random.sample(list(pool.keys()), 4)
+    # Add buttons for different percentages
+    percentage_buttons = []
+    percentages = ["25%", "50%", "75%", "100%"]
     
-    # Create a dictionary of just the selected investments
-    options_dict = {name: pool[name] for name in investment_names}
+    for i, percentage in enumerate(percentages):
+        x_pos = 150 + i * 200
+        button = Button(x_pos, 280, 100, 40, percentage, WHITE, LIGHT_GRAY)
+        percentage_buttons.append(button)
     
-    # Ask the player to choose an investment
-    choice = get_choice(investment_names, f"Investment Round {journey_round}: Choose wisely!")
-    if choice == "RESTART":
-        return -999999  # Special code to signal restart
+    # Add confirm button
+    confirm_button = Button(WIDTH // 2 - 100, 350, 200, 50, "Confirm", GREEN, LIGHT_GREEN)
     
-    # Get the description and growth for the chosen investment
-    description, growth = options_dict[choice]
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
     
-    # Add short selling option for advanced and expert rounds (3+)
-    position_type = "long"  # Default to long position
+    pygame.display.update()
     
-    if journey_round >= 3:  # Only available in advanced rounds
-        # Draw short selling decision screen
-        draw_gradient_background((50, 50, 80), (30, 30, 60))  # Professional dark gradient
-        
-        # Header with explanation
-        draw_header("Investment Position Strategy", title_color=WHITE, background_color=ROYAL_BLUE)
-        
-        # Create panel for explanation
-        create_panel(WIDTH-100, 200, 50, 120, color=(240, 240, 250), alpha=230, border=True)
-        
-        # Title
-        draw_text("CHOOSE YOUR POSITION STRATEGY", WIDTH//2, 140, subtitle_font, DARK_BLUE)
-        
-        # Explanation of short selling
-        explanation = [
-            "You can now choose between two investment strategies:",
-            "",
-            "LONG POSITION: Traditional investing - profit when prices rise, lose when prices fall.",
-            "Maximum loss is limited to your investment amount.",
-            "",
-            "SHORT POSITION: Advanced strategy - profit when prices fall, lose when prices rise.",
-            "Higher risk but can capitalize on overvalued assets or market peaks."
-        ]
-        
-        # Draw explanation text
-        for i, line in enumerate(explanation):
-            draw_text(line, WIDTH//2, 170 + (i * 22), small_font, BLACK if i in [0, 2, 5] else 
-                      DARK_BLUE if i in [3, 6] else GRAY)
-        
-        # Add market analysis that influences short selling success
-        market_status = "normal"
-        
-        # Check if this asset is at "all-time high" based on market research
-        market_trends = {
-            "Stock Market Index Fund": random.choice(["all-time high", "strong uptrend", "stable growth", "slight decline", "bearish market"]),
-            "Blue Chip Stocks": random.choice(["stable performance", "dividend increase", "modest growth", "sector rotation", "undervalued"]),
-            "Real Estate Investment Trust": random.choice(["interest-rate sensitive", "yield compression", "property value gains", "occupancy growth", "dividend cuts"]),
-            "Government Bonds": random.choice(["yield curve steepening", "inflation concerns", "safe haven demand", "rate hike fears", "historically low yields"]),
-            "High-Yield Savings": random.choice(["competitive rates", "introductory offers ending", "rate stability", "guaranteed returns", "underperforming inflation"]),
-            "Corporate Bonds": random.choice(["spread widening", "credit concerns", "yield opportunities", "rating upgrades", "liquidity issues"]),
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
             
-            "Tech Growth Stocks": random.choice(["valuation concerns", "all-time high", "innovation breakthrough", "regulatory scrutiny", "sector dominance"]),
-            "Municipal Bonds": random.choice(["tax advantage appeal", "budget concerns", "infrastructure spending", "yield opportunities", "credit downgrades"]),
-            "Dividend Stocks": random.choice(["payout increases", "sustainable yields", "dividend cuts threat", "value opportunity", "sector rotation"]),
-            "International Stock Funds": random.choice(["currency advantage", "emerging market growth", "geopolitical concerns", "valuation discount", "global recovery"]),
-            "Health Sector ETF": random.choice(["breakthrough innovations", "regulatory changes", "pandemic resilience", "demographic tailwinds", "cost pressure"]),
-            "Mid-Cap Growth Fund": random.choice(["acquisition targets", "expansion phase", "sector leadership", "valuation sweet spot", "liquidity challenges"]),
+            mouse_pos = pygame.mouse.get_pos()
             
-            "Cryptocurrency": random.choice(["extreme volatility", "institutional adoption", "regulatory crackdown", "all-time high", "technical weakness"]),
-            "Emerging Markets": random.choice(["currency risks", "growth potential", "political instability", "demographic advantage", "commodity sensitivity"]),
-            "Commodities": random.choice(["supply constraints", "demand surge", "inventory buildup", "price ceiling concerns", "producer discipline"]),
-            "Peer-to-Peer Lending": random.choice(["default rate increase", "yield opportunity", "platform stability", "regulatory changes", "competitive returns"]),
-            "Small-Cap Stocks": random.choice(["growth cycle", "interest rate sensitivity", "overlooked value", "domestic focus", "liquidity concerns"]),
-            "Real Estate Development": random.choice(["cost overruns", "strong pre-sales", "supply constraints", "location premium", "regulatory hurdles"]),
+            # Check navigation button hover
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
             
-            "Venture Capital": random.choice(["exit opportunity window", "unicorn potential", "funding round competition", "extended runways", "valuation resets"]),
-            "Hedge Funds": random.choice(["strategy convergence", "fee compression", "alpha generation", "liquidity terms", "redemption cycle"]),
-            "Private Equity": random.choice(["multiple expansion", "dry powder levels", "exit timing", "acquisition premiums", "leverage concerns"]),
-            "Options Trading": random.choice(["volatility spike", "premium compression", "contract liquidity", "expiration clustering", "implied vs. realized spread"]),
-            "Startup Incubator": random.choice(["cohort quality", "exit timeline extension", "mentor network strength", "funding ecosystem", "innovation cycle"]),
-            "Specialized REITs": random.choice(["sector tailwinds", "occupancy challenges", "development pipeline", "cap rate compression", "refinancing window"])
-        }
-        
-        if choice in market_trends:
-            trend = market_trends[choice]
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back":
+                return "back"
             
-            # Determine if asset is at peak for short selling opportunity
-            if trend == "all-time high" or "valuation concerns" in trend:
-                market_status = "peak"
-                draw_text(f"Market Analysis: {choice} appears to be at a market peak", 
-                          WIDTH//2, 320, main_font, DARK_RED)
-                draw_text("Technical indicators suggest potential for mean reversion (price decline)", 
-                          WIDTH//2, 345, small_font, DARK_RED)
-            elif any(term in trend for term in ["decline", "bearish", "cuts", "concerns", "fear", "pressure", "weakness", "hurdles"]):
-                market_status = "declining"
-                draw_text(f"Market Analysis: {choice} is showing signs of weakness", 
-                          WIDTH//2, 320, main_font, DARK_RED)
-                draw_text("Technical indicators suggest continued downward pressure", 
-                          WIDTH//2, 345, small_font, DARK_RED)
-            else:
-                draw_text(f"Market Analysis: {choice} appears to be in a normal market state", 
-                          WIDTH//2, 320, main_font, DARK_BLUE)
-                draw_text("No clear indicators of extreme overvaluation or imminent decline", 
-                          WIDTH//2, 345, small_font, DARK_BLUE)
-        
-        # Create buttons for position choice
-        long_button = Button(WIDTH//2 - 220, 400, 200, 50, "LONG POSITION", LIGHT_BLUE, ROYAL_BLUE, WHITE)
-        short_button = Button(WIDTH//2 + 20, 400, 200, 50, "SHORT POSITION", LIGHT_CORAL, DARK_RED, WHITE)
-        
-        # Draw info text based on market status
-        if market_status == "peak":
-            draw_text("SHORT SELLING SUCCESS PROBABILITY: 80%", WIDTH//2, 470, small_font, DARK_RED)
-        elif market_status == "declining":
-            draw_text("SHORT SELLING SUCCESS PROBABILITY: 65%", WIDTH//2, 470, small_font, DARK_RED)
-        else:
-            draw_text("SHORT SELLING SUCCESS PROBABILITY: 50%", WIDTH//2, 470, small_font, DARK_BLUE)
+            # Handle text input
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    try:
+                        amount = float(input_text)
+                        if 0 < amount <= wealth:
+                            return amount
+                        else:
+                            input_text = "Invalid amount"
+                    except ValueError:
+                        input_text = "Invalid input"
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    if event.unicode.isdigit() or event.unicode == '.':
+                        input_text += event.unicode
             
-        # Draw educational note
-        draw_text("Note: Short selling is an advanced technique with higher potential risks and rewards", 
-                  WIDTH//2, 500, small_font, DARK_BLUE)
+            # Handle button clicks
+            for i, button in enumerate(percentage_buttons):
+                button.check_hover(mouse_pos)
+                if button.is_clicked(mouse_pos, event):
+                    percentage = int(percentages[i].strip('%'))
+                    input_text = str(round(wealth * percentage / 100, 2))
+            
+            # Handle confirm button
+            confirm_button.check_hover(mouse_pos)
+            if confirm_button.is_clicked(mouse_pos, event):
+                try:
+                    amount = float(input_text)
+                    if 0 < amount <= wealth:
+                        return amount
+                    else:
+                        input_text = "Invalid amount"
+                except ValueError:
+                    input_text = "Invalid input"
         
-        # Draw buttons
+        SCREEN.fill(LIGHT_YELLOW)
+        draw_text(f"How much would you like to invest in {investment_type}?", WIDTH // 2, 100, font=title_font)
+        draw_text(f"Current wealth: ${wealth:.2f}", WIDTH // 2, 150)
+        
+        # Draw input box
+        pygame.draw.rect(SCREEN, input_color, input_rect, border_radius=5)
+        pygame.draw.rect(SCREEN, BLACK, input_rect, 2, border_radius=5)
+        
+        # Render input text
+        text_surface = main_font.render(input_text, True, BLACK)
+        text_rect = text_surface.get_rect(center=input_rect.center)
+        SCREEN.blit(text_surface, text_rect)
+        
+        # Draw percentage buttons
+        for button in percentage_buttons:
+            button.draw(SCREEN)
+        
+        # Draw confirm button
+        confirm_button.draw(SCREEN)
+        
+        # Draw navigation buttons
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        back_button.draw(SCREEN)
+        
+        draw_text("Enter amount or select a percentage of your wealth", WIDTH // 2, 450)
+        
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Get position type (long or short)
+def get_position_type(sector):
+    SCREEN.fill(LIGHT_YELLOW)
+    draw_text(f"How would you like to invest in {sector}?", WIDTH // 2, 100, font=title_font, color=BROWN)
+    
+    # Create buttons for long and short
+    long_button = Button(WIDTH // 2 - 250, 200, 200, 80, "BUY (LONG)", GREEN, LIGHT_GREEN)
+    short_button = Button(WIDTH // 2 + 50, 200, 200, 80, "SHORT SELL", RED, LIGHT_CORAL)
+    
+    # Add explanations
+    explanations = [
+        "BUY (LONG): You profit when the asset's value increases.",
+        "You're betting the market will go UP.",
+        "",
+        "SHORT SELL: You profit when the asset's value decreases.",
+        "You're betting the market will go DOWN."
+    ]
+    
+    y_pos = 320
+    for explanation in explanations:
+        text_surface = main_font.render(explanation, True, BLACK)
+        text_rect = text_surface.get_rect(center=(WIDTH // 2, y_pos))
+        SCREEN.blit(text_surface, text_rect)
+        y_pos += 30
+    
+    long_button.draw(SCREEN)
+    short_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    
+    # Wait for user selection
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            
+            long_button.check_hover(mouse_pos)
+            short_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
+            
+            if long_button.is_clicked(mouse_pos, event):
+                return "long"
+            elif short_button.is_clicked(mouse_pos, event):
+                return "short"
+            
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back":
+                return "back"
+        
+        # Redraw buttons with hover effects
         long_button.draw(SCREEN)
         short_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        back_button.draw(SCREEN)
+        
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Stock market simulation
+def stock_market(wealth):
+    global current_news
+    SCREEN.fill(LIGHT_GREEN)
+    draw_text("Stock Market Investment", WIDTH // 2, 100, font=title_font, color=DARK_GREEN)
+    draw_text(f"Current Wealth: ${wealth:.2f}", WIDTH // 2, 150)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    pygame.time.delay(1500)
+    
+    # Choose sector
+    options = ["Technology Stocks", "Real Estate Stocks", "Renewable Energy Stocks", "Biotech Stocks"]
+    choice = get_choice(options, "Which sector would you like to invest in?", "main")
+    
+    # Check for navigation choices
+    if choice == "restart":
+        return "restart"
+    elif choice == "back":
+        return wealth
+    
+    # Map choices to portfolio keys
+    sector_mapping = {
+        "Technology Stocks": "tech",
+        "Real Estate Stocks": "real_estate",
+        "Renewable Energy Stocks": "energy",
+        "Biotech Stocks": "biotech"
+    }
+    
+    sector = sector_mapping[choice]
+    
+    # Choose position type (long or short)
+    position = get_position_type(choice)
+    if position == "restart":
+        return "restart"
+    elif position == "back":
+        return wealth
+    
+    # Get investment amount
+    investment_amount = get_investment_amount(wealth, choice)
+    if investment_amount == "restart":
+        return "restart"
+    elif investment_amount == "back":
+        return wealth
+    
+    # Update portfolio and wealth
+    portfolio[sector][position] += investment_amount
+    remaining_wealth = wealth - investment_amount
+    
+    # Base growth rates
+    base_growth_rates = {
+        "tech": 15,
+        "real_estate": 7,
+        "energy": 10,
+        "biotech": 20
+    }
+    
+    # Adjust growth based on current news
+    news_impact = 0
+    if sector == "tech":
+        news_impact = current_news["tech"]
+    elif sector == "real_estate":
+        news_impact = current_news["real_estate"]
+    elif sector == "energy":
+        news_impact = current_news["energy"]
+    elif sector == "biotech":
+        news_impact = current_news["biotech"]
+    
+    base_growth = base_growth_rates[sector]
+    adjusted_growth = base_growth + news_impact
+    
+    # Random event multiplier (market volatility)
+    volatility = random.uniform(0.7, 1.3)
+    final_growth = adjusted_growth * volatility
+    
+    # Calculate return based on position type
+    if position == "long":
+        return_amount = investment_amount * (1 + final_growth / 100)
+    else:  # short position
+        return_amount = investment_amount * (1 - final_growth / 100)
+    
+    # Display result
+    SCREEN.fill(LIGHT_YELLOW)
+    draw_text(f"Investment Result for {choice}", WIDTH // 2, 100, font=title_font)
+    
+    if position == "long":
+        growth_text = f"Market growth: {final_growth:.2f}%"
+    else:
+        growth_text = f"Market change: {final_growth:.2f}%"
+    
+    draw_text(growth_text, WIDTH // 2, 150)
+    
+    profit = return_amount - investment_amount
+    profit_color = GREEN if profit >= 0 else RED
+    
+    draw_text(f"Investment: ${investment_amount:.2f}", WIDTH // 2, 200)
+    draw_text(f"Return: ${return_amount:.2f}", WIDTH // 2, 250)
+    draw_text(f"Profit/Loss: ${profit:.2f}", WIDTH // 2, 300, color=profit_color)
+    
+    # Continue button
+    continue_button = Button(WIDTH // 2 - 100, 400, 200, 50, "Continue", BLUE, LIGHT_BLUE, WHITE)
+    continue_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    
+    # Wait for user to continue
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            continue_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
+            
+            if continue_button.is_clicked(mouse_pos, event):
+                # Update the news after the transaction is complete
+                current_news = random.choice(market_news)
+                return remaining_wealth + return_amount
+            
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back":
+                return wealth  # Return original wealth if going back
+        
+        continue_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        back_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Bond market simulation
+def bond_market(wealth):
+    global current_news
+    SCREEN.fill(LIGHT_GREY)
+    draw_text("Bond Market Investment", WIDTH // 2, 100, font=title_font, color=BLACK)
+    draw_text(f"Current Wealth: ${wealth:.2f}", WIDTH // 2, 150)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    pygame.time.delay(1000)
+    
+    # Choose bond type
+    options = ["Government Bonds", "Corporate Bonds", "Municipal Bonds", "High-Yield Bonds"]
+    choice = get_choice(options, "Which bonds would you like to invest in?", "main")
+    
+    # Check for navigation choices
+    if choice == "restart":
+        return "restart"
+    elif choice == "back":
+        return wealth
+    
+    # Map choices to portfolio keys
+    bond_mapping = {
+        "Government Bonds": "government",
+        "Corporate Bonds": "corporate",
+        "Municipal Bonds": "municipal",
+        "High-Yield Bonds": "high_yield"
+    }
+    
+    bond_type = bond_mapping[choice]
+    
+    # Choose position type (long or short)
+    position = get_position_type(choice)
+    if position == "restart":
+        return "restart"
+    elif position == "back":
+        return wealth
+    
+    # Get investment amount
+    # Get investment amount
+    investment_amount = get_investment_amount(wealth, choice)
+    if investment_amount == "restart":
+        return "restart"
+    elif investment_amount == "back":
+        return wealth
+    
+    # Update portfolio and wealth
+    portfolio[bond_type][position] += investment_amount
+    remaining_wealth = wealth - investment_amount
+    
+    # Base yield rates for bonds
+    base_yield_rates = {
+        "government": 3,
+        "corporate": 5,
+        "municipal": 4,
+        "high_yield": 8
+    }
+    
+    # Adjust yield based on current news
+    news_impact = current_news["bonds"]
+    
+    base_yield = base_yield_rates[bond_type]
+    adjusted_yield = base_yield + news_impact
+    
+    # Random event multiplier (less volatility for bonds)
+    volatility = random.uniform(0.9, 1.1)
+    final_yield = adjusted_yield * volatility
+    
+    # Calculate return based on position type
+    if position == "long":
+        return_amount = investment_amount * (1 + final_yield / 100)
+    else:  # short position
+        return_amount = investment_amount * (1 - final_yield / 100)
+    
+    # Display result
+    SCREEN.fill(LIGHT_YELLOW)
+    draw_text(f"Investment Result for {choice}", WIDTH // 2, 100, font=title_font)
+    
+    if position == "long":
+        yield_text = f"Bond yield: {final_yield:.2f}%"
+    else:
+        yield_text = f"Bond market change: {final_yield:.2f}%"
+    
+    draw_text(yield_text, WIDTH // 2, 150)
+    
+    profit = return_amount - investment_amount
+    profit_color = GREEN if profit >= 0 else RED
+    
+    draw_text(f"Investment: ${investment_amount:.2f}", WIDTH // 2, 200)
+    draw_text(f"Return: ${return_amount:.2f}", WIDTH // 2, 250)
+    draw_text(f"Profit/Loss: ${profit:.2f}", WIDTH // 2, 300, color=profit_color)
+    
+    # Continue button
+    continue_button = Button(WIDTH // 2 - 100, 400, 200, 50, "Continue", BLUE, LIGHT_BLUE, WHITE)
+    continue_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    
+    # Wait for user to continue
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            continue_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
+            
+            if continue_button.is_clicked(mouse_pos, event):
+                # Update the news after the transaction is complete
+                current_news = random.choice(market_news)
+                return remaining_wealth + return_amount
+            
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back":
+                return wealth  # Return original wealth if going back
+        
+        continue_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        back_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Savings account simulation
+def savings_account(wealth):
+    SCREEN.fill(LIGHT_BLUE)
+    draw_text("Savings Account", WIDTH // 2, 100, font=title_font, color=DARK_BLUE)
+    draw_text(f"Current Wealth: ${wealth:.2f}", WIDTH // 2, 150)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    pygame.time.delay(1000)
+    
+    # Display savings information
+    draw_text("Savings accounts offer a safe, low-yield investment option.", WIDTH // 2, 200)
+    draw_text("Current interest rate: 2.5% per year", WIDTH // 2, 250)
+    draw_text("Time frame: 3 months (0.625% return)", WIDTH // 2, 300)
+    
+    # Get investment amount
+    investment_amount = get_investment_amount(wealth, "a Savings Account")
+    if investment_amount == "restart":
+        return "restart"
+    elif investment_amount == "back":
+        return wealth
+    
+    # Update portfolio and wealth
+    portfolio["savings"]["amount"] += investment_amount
+    remaining_wealth = wealth - investment_amount
+    
+    # Calculate return (3 month period)
+    interest_rate = 0.025 / 4  # 2.5% annual rate for a quarter
+    return_amount = investment_amount * (1 + interest_rate)
+    
+    # Display result
+    SCREEN.fill(LIGHT_YELLOW)
+    draw_text("Savings Account Result", WIDTH // 2, 100, font=title_font)
+    
+    draw_text("Interest rate: 0.625% (3 months)", WIDTH // 2, 150)
+    
+    profit = return_amount - investment_amount
+    
+    draw_text(f"Investment: ${investment_amount:.2f}", WIDTH // 2, 200)
+    draw_text(f"Return after 3 months: ${return_amount:.2f}", WIDTH // 2, 250)
+    draw_text(f"Interest earned: ${profit:.2f}", WIDTH // 2, 300, color=GREEN)
+    
+    # Continue button
+    continue_button = Button(WIDTH // 2 - 100, 400, 200, 50, "Continue", BLUE, LIGHT_BLUE, WHITE)
+    continue_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    
+    # Wait for user to continue
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            continue_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
+            
+            if continue_button.is_clicked(mouse_pos, event):
+                return remaining_wealth + return_amount
+            
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back":
+                return wealth  # Return original wealth if going back
+        
+        continue_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        back_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Emergency fund simulation
+def emergency_fund(wealth):
+    SCREEN.fill(LIGHT_BLUE)
+    draw_text("Emergency Fund", WIDTH // 2, 100, font=title_font, color=DARK_BLUE)
+    draw_text(f"Current Wealth: ${wealth:.2f}", WIDTH // 2, 150)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    pygame.time.delay(1000)
+    
+    # Display emergency fund information
+    draw_text("Emergency funds provide financial security for unexpected events.", WIDTH // 2, 200)
+    draw_text("Money in emergency funds is completely safe from market fluctuations.", WIDTH // 2, 250)
+    draw_text("It earns a small interest of 1% per year.", WIDTH // 2, 300)
+    draw_text("Having emergency funds may help you avoid costly loans during crisis.", WIDTH // 2, 350)
+    
+    # Get investment amount
+    investment_amount = get_investment_amount(wealth, "your Emergency Fund")
+    if investment_amount == "restart":
+        return "restart"
+    elif investment_amount == "back":
+        return wealth
+    
+    # Update portfolio and wealth
+    portfolio["emergency"]["amount"] += investment_amount
+    remaining_wealth = wealth - investment_amount
+    
+    # Calculate return (3 month period)
+    interest_rate = 0.01 / 4  # 1% annual rate for a quarter
+    return_amount = investment_amount * (1 + interest_rate)
+    
+    # Display result
+    SCREEN.fill(LIGHT_YELLOW)
+    draw_text("Emergency Fund Result", WIDTH // 2, 100, font=title_font)
+    
+    draw_text("Interest rate: 0.25% (3 months)", WIDTH // 2, 150)
+    
+    profit = return_amount - investment_amount
+    
+    draw_text(f"Amount saved: ${investment_amount:.2f}", WIDTH // 2, 200)
+    draw_text(f"Value after 3 months: ${return_amount:.2f}", WIDTH // 2, 250)
+    draw_text(f"Interest earned: ${profit:.2f}", WIDTH // 2, 300, color=GREEN)
+    
+    # Continue button
+    continue_button = Button(WIDTH // 2 - 100, 400, 200, 50, "Continue", BLUE, LIGHT_BLUE, WHITE)
+    continue_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, back_button = add_navigation_buttons(SCREEN)
+    
+    pygame.display.update()
+    
+    # Wait for user to continue
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            continue_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
+            
+            if continue_button.is_clicked(mouse_pos, event):
+                return remaining_wealth + return_amount
+            
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, back_button, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+            elif action == "back":
+                return wealth  # Return original wealth if going back
+        
+        continue_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        back_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Random event simulation
+def random_event(wealth):
+    SCREEN.fill(LIGHT_CORAL)
+    draw_text("RANDOM LIFE EVENT!", WIDTH // 2, 100, font=title_font, color=DARK_RED)
+    
+    # List of possible events with their financial impacts
+    events = [
+        {"description": "You got sick and had to pay medical bills.", "impact": -2000},
+        {"description": "Your car broke down and needs repairs.", "impact": -1500},
+        {"description": "You received a tax refund!", "impact": 1000},
+        {"description": "You won a small lottery prize!", "impact": 2000},
+        {"description": "A distant relative left you some money in their will.", "impact": 3000},
+        {"description": "You had to replace your laptop after it stopped working.", "impact": -800},
+        {"description": "Your apartment was flooded and insurance didn't cover everything.", "impact": -3000},
+        {"description": "You received a performance bonus at work!", "impact": 1500},
+        {"description": "You had unexpected home repairs.", "impact": -1200},
+        {"description": "You found $100 in an old jacket!", "impact": 100}
+    ]
+    
+    # Select a random event
+    event = random.choice(events)
+    
+    # Check if user has emergency funds
+    has_emergency = portfolio["emergency"]["amount"] > 0
+    
+    # If the event is negative and there are emergency funds, use them
+    modified_impact = event["impact"]
+    emergency_used = 0
+    
+    if event["impact"] < 0 and has_emergency:
+        available_emergency = portfolio["emergency"]["amount"]
+        if abs(event["impact"]) <= available_emergency:
+            emergency_used = abs(event["impact"])
+            modified_impact = 0
+        else:
+            emergency_used = available_emergency
+            modified_impact = event["impact"] + available_emergency
+    
+    # Update emergency fund if used
+    if emergency_used > 0:
+        portfolio["emergency"]["amount"] -= emergency_used
+    
+    # Display event information
+    draw_text(event["description"], WIDTH // 2, 200, font=title_font)
+    
+    if event["impact"] < 0:
+        impact_color = RED
+        impact_text = f"Financial Impact: -${abs(event['impact']):.2f}"
+    else:
+        impact_color = GREEN
+        impact_text = f"Financial Impact: +${event['impact']:.2f}"
+    
+    draw_text(impact_text, WIDTH // 2, 250, color=impact_color)
+    
+    if emergency_used > 0:
+        draw_text(f"Emergency Fund Used: ${emergency_used:.2f}", WIDTH // 2, 300, color=BLUE)
+        draw_text(f"Actual Financial Impact: ${modified_impact:.2f}", WIDTH // 2, 350, color=impact_color if modified_impact != 0 else GREEN)
+    
+    # Update wealth
+    new_wealth = wealth + modified_impact
+    
+    draw_text(f"Previous Wealth: ${wealth:.2f}", WIDTH // 2, 400)
+    draw_text(f"New Wealth: ${new_wealth:.2f}", WIDTH // 2, 450)
+    
+    # Continue button
+    continue_button = Button(WIDTH // 2 - 100, 550, 200, 50, "Continue", BLUE, LIGHT_BLUE, WHITE)
+    continue_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, _ = add_navigation_buttons(SCREEN, show_back=False)
+    
+    pygame.display.update()
+    
+    # Wait for user to continue
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            continue_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            
+            if continue_button.is_clicked(mouse_pos, event):
+                return new_wealth
+            
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, None, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+        
+        continue_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Portfolio display
+def show_portfolio(wealth):
+    SCREEN.fill(LIGHT_GREY)
+    draw_text("Your Investment Portfolio", WIDTH // 2, 60, font=title_font, color=DARK_BLUE)
+    draw_text(f"Current Wealth: ${wealth:.2f}", WIDTH // 2, 100)
+    
+    # Calculate total invested amount
+    total_investment = 0
+    for sector, positions in portfolio.items():
+        if sector in ["savings", "emergency"]:
+            total_investment += positions["amount"]
+        else:
+            total_investment += positions["long"] + positions["short"]
+    
+    draw_text(f"Total Invested: ${total_investment:.2f}", WIDTH // 2, 130)
+    
+    # Display stock investments
+    y_pos = 180
+    stocks = ["tech", "real_estate", "energy", "biotech"]
+    draw_text("Stock Investments:", WIDTH // 2, y_pos, font=title_font)
+    y_pos += 40
+    
+    for stock in stocks:
+        stock_name = {
+            "tech": "Technology",
+            "real_estate": "Real Estate",
+            "energy": "Energy",
+            "biotech": "Biotech"
+        }[stock]
+        
+        long_amount = portfolio[stock]["long"]
+        short_amount = portfolio[stock]["short"]
+        
+        if long_amount > 0 or short_amount > 0:
+            draw_text(f"{stock_name}:", WIDTH // 2 - 200, y_pos, font=main_font, color=DARK_BLUE)
+            if long_amount > 0:
+                draw_text(f"LONG: ${long_amount:.2f}", WIDTH // 2, y_pos, font=main_font)
+            if short_amount > 0:
+                draw_text(f"SHORT: ${short_amount:.2f}", WIDTH // 2 + 200, y_pos, font=main_font)
+            y_pos += 30
+    
+    y_pos += 20
+    # Display bond investments
+    bonds = ["government", "corporate", "municipal", "high_yield"]
+    draw_text("Bond Investments:", WIDTH // 2, y_pos, font=title_font)
+    y_pos += 40
+    
+    for bond in bonds:
+        bond_name = {
+            "government": "Government",
+            "corporate": "Corporate",
+            "municipal": "Municipal",
+            "high_yield": "High-Yield"
+        }[bond]
+        
+        long_amount = portfolio[bond]["long"]
+        short_amount = portfolio[bond]["short"]
+        
+        if long_amount > 0 or short_amount > 0:
+            draw_text(f"{bond_name}:", WIDTH // 2 - 200, y_pos, font=main_font, color=DARK_BLUE)
+            if long_amount > 0:
+                draw_text(f"LONG: ${long_amount:.2f}", WIDTH // 2, y_pos, font=main_font)
+            if short_amount > 0:
+                draw_text(f"SHORT: ${short_amount:.2f}", WIDTH // 2 + 200, y_pos, font=main_font)
+            y_pos += 30
+    
+    y_pos += 20
+    # Display other investments
+    draw_text("Other Funds:", WIDTH // 2, y_pos, font=title_font)
+    y_pos += 40
+    
+    savings = portfolio["savings"]["amount"]
+    emergency = portfolio["emergency"]["amount"]
+    
+    if savings > 0:
+        draw_text(f"Savings Account: ${savings:.2f}", WIDTH // 2, y_pos, font=main_font)
+        y_pos += 30
+    
+    if emergency > 0:
+        draw_text(f"Emergency Fund: ${emergency:.2f}", WIDTH // 2, y_pos, font=main_font)
+    
+    # Back button
+    back_button = Button(WIDTH // 2 - 100, 600, 200, 50, "Back to Main Menu", BLUE, LIGHT_BLUE, WHITE)
+    back_button.draw(SCREEN)
+    
+    # Add navigation buttons
+    quit_button, restart_button, _ = add_navigation_buttons(SCREEN, show_back=False)
+    
+    pygame.display.update()
+    
+    # Wait for user to continue
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            back_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            restart_button.check_hover(mouse_pos)
+            
+            if back_button.is_clicked(mouse_pos, event):
+                return wealth
+            
+            # Handle navigation button clicks
+            action = handle_navigation(quit_button, restart_button, None, mouse_pos, event)
+            if action == "restart":
+                return "restart"
+        
+        back_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        restart_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Game over screen
+def game_over(wealth, success=False):
+    if success:
+        SCREEN.fill(LIGHT_GREEN)
+        draw_text("CONGRATULATIONS!", WIDTH // 2, 150, font=title_font, color=DARK_GREEN)
+        draw_text("You've reached your financial goal of $100,000!", WIDTH // 2, 220, font=title_font)
+        draw_text(f"Final Wealth: ${wealth:.2f}", WIDTH // 2, 290, font=title_font)
+        message = "You're on your way to financial independence!"
+    else:
+        SCREEN.fill(LIGHT_CORAL)
+        draw_text("GAME OVER", WIDTH // 2, 150, font=title_font, color=DARK_RED)
+        draw_text("Unfortunately, you've gone bankrupt!", WIDTH // 2, 220, font=title_font)
+        draw_text(f"Final Wealth: ${wealth:.2f}", WIDTH // 2, 290, font=title_font)
+        message = "Better luck next time!"
+    
+    draw_text(message, WIDTH // 2, 360, font=title_font)
+    
+    # Restart button
+    restart_button = Button(WIDTH // 2 - 100, 450, 200, 50, "Restart Game", GREEN, LIGHT_GREEN)
+    
+    # Quit button
+    quit_button = Button(WIDTH // 2 - 100, 520, 200, 50, "Quit Game", RED, LIGHT_CORAL, WHITE)
+    
+    pygame.display.update()
+    
+    # Wait for user action
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            mouse_pos = pygame.mouse.get_pos()
+            restart_button.check_hover(mouse_pos)
+            quit_button.check_hover(mouse_pos)
+            
+            if restart_button.is_clicked(mouse_pos, event):
+                return True  # Restart
+            elif quit_button.is_clicked(mouse_pos, event):
+                pygame.quit()
+                sys.exit()
+        
+        restart_button.draw(SCREEN)
+        quit_button.draw(SCREEN)
+        pygame.display.update()
+        pygame.time.delay(30)
+
+# Main game loop
+def main():
+    global portfolio, current_news
+    
+    # Reset game state
+    portfolio = {
+        "tech": {"long": 0, "short": 0},
+        "real_estate": {"long": 0, "short": 0},
+        "energy": {"long": 0, "short": 0},
+        "biotech": {"long": 0, "short": 0},
+        "government": {"long": 0, "short": 0},
+        "corporate": {"long": 0, "short": 0},
+        "municipal": {"long": 0, "short": 0},
+        "high_yield": {"long": 0, "short": 0},
+        "savings": {"amount": 0},
+        "emergency": {"amount": 0}
+    }
+    
+    current_news = random.choice(market_news)
+    
+    # Initial wealth
+    wealth = 10000
+    
+    # Show game instructions
+    show_instructions()
+    
+    # Game running flag
+    running = True
+    turn_counter = 0
+    
+    while running:
+        # Check win/lose conditions
+        if wealth >= 100000:
+            if game_over(wealth, success=True):
+                main()  # Restart game
+            else:
+                return
+        elif wealth <= 0:
+            if game_over(wealth, success=False):
+                main()  # Restart game
+            else:
+                return
+        
+        # Main menu
+        SCREEN.fill(LIGHT_BLUE)
+        draw_text("Investment Story Game", WIDTH // 2, 60, font=title_font, color=DARK_BLUE)
+        draw_text(f"Current Wealth: ${wealth:.2f}", WIDTH // 2, 120, font=title_font)
+        draw_text(f"Turn: {turn_counter}", WIDTH // 2, 160)
+        
+        # Main menu options
+        options = [
+            "Invest in Stocks",
+            "Invest in Bonds",
+            "Open a Savings Account",
+            "Create Emergency Fund",
+            "Check Portfolio",
+            "Market Research"
+        ]
+        
+        buttons = []
+        for idx, option in enumerate(options):
+            y_pos = 220 + idx * 60
+            button = Button(WIDTH // 2 - 150, y_pos, 300, 50, option, WHITE, LIGHT_GRAY)
+            buttons.append(button)
+            button.draw(SCREEN)
+        
+        # Random event chance (10%)
+        random_event_chance = random.random() < 0.1
+        if random_event_chance and turn_counter > 0:
+            draw_text("Random Life Event Incoming!", WIDTH // 2, 600, color=RED, font=title_font)
+        
+        # Add navigation buttons
+        quit_button, restart_button, _ = add_navigation_buttons(SCREEN, show_back=False)
         
         pygame.display.update()
         
-        # Wait for choice
-        waiting = True
-        while waiting:
+        # Wait for selection
+        selection_made = False
+        while not selection_made:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 
                 mouse_pos = pygame.mouse.get_pos()
-                long_button.check_hover(mouse_pos)
-                short_button.check_hover(mouse_pos)
                 
-                if long_button.is_clicked(mouse_pos, event):
-                    position_type = "long"
-                    waiting = False
-                elif short_button.is_clicked(mouse_pos, event):
-                    position_type = "short"
-                    waiting = False
+                for idx, button in enumerate(buttons):
+                    button.check_hover(mouse_pos)
+                    if button.is_clicked(mouse_pos, event):
+                        selection = options[idx]
+                        selection_made = True
                 
-                # Redraw buttons with hover effect
-                long_button.draw(SCREEN)
-                short_button.draw(SCREEN)
-                pygame.display.update()
-                pygame.time.delay(30)
-        
-        # Modify growth based on short selling choice and market status
-        if position_type == "short":
-            # Invert growth for short position: negative becomes positive, positive becomes negative
-            growth = -growth
-            
-            # Apply probability-based adjustment for short selling at market peaks
-            if market_status == "peak" and growth > 0:  # If shorting at peak and original growth was negative
-                # 80% chance of success (increased return for short)
-                if random.random() < 0.8:
-                    growth = growth * random.uniform(1.2, 1.5)  # Boost short returns by 20-50%
-                
-            elif market_status == "declining" and growth > 0:
-                # 65% chance of success
-                if random.random() < 0.65:
-                    growth = growth * random.uniform(1.1, 1.3)  # Boost short returns by 10-30%
-    
-    # Display the chosen investment and explain its characteristics
-    draw_gradient_background((240, 248, 255), (255, 248, 220))  # Light blue to cream background
-    
-    # Header for result screen
-    draw_header(f"Investment: {choice}", title_color=DARK_BLUE, background_color=LIGHT_BLUE)
-    
-    # Create info panel
-    create_panel(WIDTH-100, 300, 50, 150, color=(255, 255, 255), alpha=220, border=True)
-    
-    # Educational explanation
-    draw_text("Investment Strategy:", WIDTH // 2, 170, font=subtitle_font, color=DARK_BLUE)
-    
-    # Split description into multiple lines if needed
-    words = description.split()
-    lines = []
-    current_line = ""
-    
-    for word in words:
-        if len(current_line + " " + word) > 50:  # Limit line length
-            lines.append(current_line)
-            current_line = word
-        else:
-            current_line += " " + word if current_line else word
-    
-    if current_line:
-        lines.append(current_line)
-    
-    # Display each line of the description
-    for i, line in enumerate(lines):
-        draw_text(line, WIDTH // 2, 200 + (i * 25), main_font, BLACK)
-    
-    y_offset = 200 + (len(lines) * 25) + 30
-    
-    # Educational component about the investment type
-    educational_insights = {
-        "beginner": [
-            "Beginner investors often benefit from low-cost index funds.",
-            "Diversification is key to managing investment risk.",
-            "Dollar-cost averaging reduces timing risk for new investors.",
-            "Starting with blue-chip stocks provides stability for beginners."
-        ],
-        "intermediate": [
-            "Asset allocation becomes more important as portfolios grow.",
-            "Dividend stocks can provide income while growing capital.",
-            "International exposure helps reduce geographic concentration risk.",
-            "Sector ETFs allow targeted investment in growing industries."
-        ],
-        "advanced": [
-            "Alternative investments can reduce correlation with stock markets.",
-            "Emerging markets offer growth potential but with higher volatility.",
-            "Commodities often move opposite to stocks during market stress.",
-            "Higher risk investments should be balanced with stable assets."
-        ],
-        "expert": [
-            "Professional investors maintain strict risk management systems.",
-            "Private investments can offer returns uncorrelated with public markets.",
-            "Derivatives can be used to hedge risk or enhance returns.",
-            "Complex strategies require constant monitoring and adjustment."
-        ]
-    }
-    
-    # Select insight based on round
-    if journey_round == 1:
-        insight = random.choice(educational_insights["beginner"])
-    elif journey_round == 2:
-        insight = random.choice(educational_insights["intermediate"])
-    elif journey_round == 3:
-        insight = random.choice(educational_insights["advanced"])
-    else:
-        insight = random.choice(educational_insights["expert"])
-    
-    # Draw educational insight
-    create_panel(WIDTH-150, 60, 75, y_offset, color=(230, 230, 250), alpha=200, border=True)
-    draw_text("Financial Insight:", WIDTH // 2, y_offset + 15, main_font, DARK_BLUE)
-    draw_text(insight, WIDTH // 2, y_offset + 40, small_font, DARK_BLUE)
-    
-    y_offset += 70
-    
-    # Draw the investment growth/loss
-    if growth > 0:
-        draw_text(f"Your investment grew by {growth}%!", WIDTH // 2, y_offset, color=DARK_GREEN)
-    elif growth == 0:
-        draw_text("Your investment broke even - no gain or loss.", WIDTH // 2, y_offset, color=BROWN)
-    else:
-        draw_text(f"Your investment decreased by {abs(growth)}%!", WIDTH // 2, y_offset, color=DARK_RED)
-    
-    # Calculate and display new wealth
-    old_wealth = wealth
-    wealth += wealth * (growth / 100)
-    
-    # Create story narrative panel for investment details
-    create_panel(WIDTH-200, 80, 100, y_offset + 30, color=(255, 248, 220), alpha=200, border=True)
-    
-    draw_text(f"Previous wealth: ${old_wealth:.2f}", WIDTH // 2, y_offset + 45)
-    draw_text(f"New wealth: ${wealth:.2f}", WIDTH // 2, y_offset + 75, 
-              color=DARK_GREEN if wealth > old_wealth else DARK_RED if wealth < old_wealth else BLACK)
-    
-    # Add a market event that might affect the investment
-    # Define market events with educational descriptions
-    market_events = {
-        # Negative events with educational element
-        "recession": {
-            "event": "Economic recession hits! Market values decline.",
-            "impact": -10,
-            "lesson": "Recessions affect different investments differently. Diversification is crucial."
-        },
-        "interest_rates": {
-            "event": "Interest rates rise, affecting investment returns.",
-            "impact": -5,
-            "lesson": "Rate changes impact bonds, real estate, and growth stocks in different ways."
-        },
-        "inflation": {
-            "event": "Inflation increases, affecting purchasing power.",
-            "impact": -8,
-            "lesson": "Some assets like real estate and commodities can be inflation hedges."
-        },
-        "trade_tensions": {
-            "event": "Global trade tensions affect markets.",
-            "impact": -7,
-            "lesson": "International events demonstrate why geographic diversification matters."
-        },
-        "bankruptcy": {
-            "event": "Major company bankruptcy shakes investor confidence.",
-            "impact": -12,
-            "lesson": "Company-specific risk can be mitigated through diversification."
-        },
-        "political": {
-            "event": "Political instability creates market uncertainty.",
-            "impact": -9,
-            "lesson": "Political events create volatility but rarely affect long-term performance."
-        },
-        "regulatory": {
-            "event": "Regulatory changes impact business operations.",
-            "impact": -6,
-            "lesson": "Regulatory risk affects different sectors in different ways."
-        },
-        "currency": {
-            "event": "Currency devaluation affects international investments.",
-            "impact": -11,
-            "lesson": "Currency hedging can protect international investments."
-        },
-        "disaster": {
-            "event": "Natural disaster disrupts supply chains.",
-            "impact": -8,
-            "lesson": "Unexpected events highlight the importance of emergency reserves."
-        },
-        "cyber": {
-            "event": "Cyber attack on financial institutions creates panic.",
-            "impact": -10,
-            "lesson": "Modern risks require modern risk management strategies."
-        },
-        "bubble": {
-            "event": "Market speculation bubble bursts!",
-            "impact": -15,
-            "lesson": "Market euphoria often precedes significant corrections."
-        },
-        "housing": {
-            "event": "Housing market crash affects broader economy.",
-            "impact": -13,
-            "lesson": "Real estate cycles can impact multiple investment sectors."
-        },
-        "oil": {
-            "event": "Oil price shock impacts energy sector.",
-            "impact": -9,
-            "lesson": "Commodity price risks affect multiple industries."
-        },
-        "strikes": {
-            "event": "Labor strikes disrupt production in key industries.",
-            "impact": -7,
-            "lesson": "Labor relations can significantly impact company performance."
-        },
-        "banking": {
-            "event": "Banking crisis leads to credit squeeze.",
-            "impact": -14,
-            "lesson": "Financial system health affects availability of capital for all."
-        },
-        "agriculture": {
-            "event": "Agricultural shortage leads to price inflation.",
-            "impact": -6,
-            "lesson": "Food production challenges can drive broader inflation trends."
-        },
-        "consumer": {
-            "event": "Consumer confidence falls to historic lows.",
-            "impact": -8,
-            "lesson": "Consumer sentiment drives approximately 70% of economic activity."
-        },
-        "fraud": {
-            "event": "Corporate fraud scandal rocks major corporation.",
-            "impact": -11,
-            "lesson": "Corporate governance is crucial for long-term investment success."
-        },
-        "tech_correction": {
-            "event": "Tech sector correction after years of growth.",
-            "impact": -12,
-            "lesson": "High-growth sectors often experience higher volatility."
-        },
-        "healthcare": {
-            "event": "Healthcare costs surge, affecting corporate profits.",
-            "impact": -7,
-            "lesson": "Healthcare expenses impact both consumers and companies' bottom lines."
-        },
-        
-        # Positive events with educational element
-        "tech_breakthrough": {
-            "event": "New technology breakthrough boosts the economy!",
-            "impact": 15,
-            "lesson": "Innovation drives productivity and economic expansion."
-        },
-        "stimulus": {
-            "event": "Government stimulus package helps the economy.",
-            "impact": 8,
-            "lesson": "Fiscal policy can significantly impact short-term economic conditions."
-        },
-        "tax_cuts": {
-            "event": "Tax cuts benefit businesses and investors.",
-            "impact": 12,
-            "lesson": "Tax policy affects corporate earnings and investor returns."
-        },
-        "jobs": {
-            "event": "Strong jobs report improves economic outlook.",
-            "impact": 6,
-            "lesson": "Employment metrics are leading indicators of economic health."
-        },
-        "trade_agreement": {
-            "event": "New trade agreement opens international markets.",
-            "impact": 11,
-            "lesson": "Reduced trade barriers can create new investment opportunities."
-        },
-        "central_bank": {
-            "event": "Central bank policy supports market growth.",
-            "impact": 9,
-            "lesson": "Monetary policy directly affects borrowing costs and asset prices."
-        },
-        "renewable": {
-            "event": "Innovation in renewable energy creates new opportunities.",
-            "impact": 13,
-            "lesson": "Sustainability trends are reshaping industry and investment landscapes."
-        },
-        "productivity": {
-            "event": "Productivity gains reported across multiple sectors.",
-            "impact": 7,
-            "lesson": "Productivity growth drives long-term economic prosperity."
-        },
-        "spending": {
-            "event": "Consumer spending surges in holiday season.",
-            "impact": 10,
-            "lesson": "Consumer spending patterns can indicate economic confidence."
-        },
-        "medical": {
-            "event": "Medical breakthrough promises new treatment options.",
-            "impact": 14,
-            "lesson": "Healthcare innovation can create significant investment opportunities."
-        },
-        "infrastructure": {
-            "event": "Infrastructure bill passes, boosting construction sector.",
-            "impact": 12,
-            "lesson": "Government spending on infrastructure can stimulate economic growth."
-        },
-        "corporate": {
-            "event": "Record corporate profits reported this quarter.",
-            "impact": 15, 
-            "lesson": "Corporate earnings drive stock market returns over time."
-        },
-        "unemployment": {
-            "event": "Unemployment reaches historic low.",
-            "impact": 8,
-            "lesson": "Low unemployment typically leads to wage growth and inflation."
-        },
-        "housing_rebound": {
-            "event": "Housing market rebounds with strong sales.",
-            "impact": 9,
-            "lesson": "Real estate often leads economic recoveries due to wealth effect."
-        },
-        "new_market": {
-            "event": "New market opens for domestic products.",
-            "impact": 11,
-            "lesson": "Market expansion creates growth opportunities for businesses."
-        },
-        "tech_product": {
-            "event": "Tech company announces revolutionary product.",
-            "impact": 16,
-            "lesson": "Disruptive innovation can create new industry leaders."
-        },
-        "resource": {
-            "event": "Mining company discovers valuable resource deposit.",
-            "impact": 13,
-            "lesson": "Resource discoveries can shift supply-demand dynamics."
-        },
-        "merger": {
-            "event": "Merger creates powerful new market leader.",
-            "impact": 10,
-            "lesson": "Consolidation can create economies of scale and market influence."
-        },
-        "foreign_investment": {
-            "event": "Foreign investment flows into domestic markets.",
-            "impact": 8,
-            "lesson": "Capital flows affect currency values and asset prices."
-        },
-        "agricultural": {
-            "event": "Agricultural surplus leads to economic stability.",
-            "impact": 7,
-            "lesson": "Food security contributes to economic and social stability."
-        }
-    }
-    
-    # 30% chance of a market event occurring
-    if random.random() < 0.3:
-        # Create event panel
-        create_panel(WIDTH-100, 200, 50, y_offset + 110, color=(255, 240, 240), alpha=220, border=True)
-        
-        # Group events by category for story progression
-        negative_events = ["recession", "interest_rates", "inflation", "trade_tensions", 
-                          "bankruptcy", "political", "regulatory", "currency", "disaster", 
-                          "cyber", "bubble", "housing", "oil", "strikes", "banking", 
-                          "agriculture", "consumer", "fraud", "tech_correction", "healthcare"]
-        
-        positive_events = ["tech_breakthrough", "stimulus", "tax_cuts", "jobs", 
-                          "trade_agreement", "central_bank", "renewable", "productivity", 
-                          "spending", "medical", "infrastructure", "corporate", "unemployment", 
-                          "housing_rebound", "new_market", "tech_product", "resource", 
-                          "merger", "foreign_investment", "agricultural"]
-        
-        # Choose event based on player's wealth trend for more narrative continuity
-        if wealth > old_wealth * 1.1:  # Player doing well - mix of events, slightly more negative for balance
-            event_category = random.choices([negative_events, positive_events], weights=[0.6, 0.4])[0]
-        elif wealth < old_wealth * 0.9:  # Player struggling - more positive events for balance
-            event_category = random.choices([negative_events, positive_events], weights=[0.3, 0.7])[0]
-        else:  # Neutral performance - balanced odds
-            event_category = random.choices([negative_events, positive_events], weights=[0.5, 0.5])[0]
-            
-        # Select a random event from the chosen category
-        event_key = random.choice(event_category)
-        event_data = market_events[event_key]
-        
-        # Extract event details
-        event_text = event_data["event"]
-        impact = event_data["impact"]
-        lesson = event_data["lesson"]
-        
-        # Display event information
-        draw_text("BREAKING NEWS:", WIDTH // 2, y_offset + 125, color=RED, font=subtitle_font)
-        draw_text(event_text, WIDTH // 2, y_offset + 155)
-        
-        # Calculate impact on wealth
-        old_wealth = wealth
-        wealth += wealth * (impact / 100)
-        
-        # Display impact on wealth
-        impact_color = DARK_GREEN if impact > 0 else DARK_RED
-        draw_text(f"Impact on your wealth: {impact}%", WIDTH // 2, y_offset + 185, color=impact_color)
-        draw_text(f"Updated wealth: ${wealth:.2f}", WIDTH // 2, y_offset + 215, 
-                 color=DARK_GREEN if wealth > old_wealth else DARK_RED)
-        
-        # Create educational insight panel
-        create_panel(WIDTH-150, 60, 75, y_offset + 240, color=(230, 230, 250), alpha=200, border=True)
-        
-        # Display educational lesson
-        draw_text("Financial Insight:", WIDTH // 2, y_offset + 255, main_font, DARK_BLUE)
-        draw_text(lesson, WIDTH // 2, y_offset + 275, small_font, DARK_BLUE)
-        
-        # Add this event to the investment history
-        investment_history.append(f"Market Event: {event_text} - Impact: {impact}%")
-        
-        # Store the impact for skill tracking
-        market_impact = impact
-    else:
-        # No market event
-        market_impact = 0
-    
-    # Create continue button using skill-based prompt based on performance
-    if wealth > old_wealth * 1.2:  # Over 20% gain
-        continue_text = "Celebrate Success & Continue"
-    elif wealth > old_wealth:  # Any gain
-        continue_text = "Continue Building Wealth"
-    elif wealth > old_wealth * 0.9:  # Small loss
-        continue_text = "Regroup & Continue"
-    else:  # Big loss
-        continue_text = "Learn from Loss & Continue"
-    
-    # Continue button and buttons panel
-    create_panel(WIDTH-200, 60, 100, HEIGHT-90, color=(245, 245, 245), alpha=180, border=True)
-    continue_button = Button(WIDTH // 2 - 120, HEIGHT - 80, 240, 50, continue_text, LIGHT_GREEN, GREEN)
-    continue_button.draw(SCREEN)
-    
-    pygame.display.update()
-    
-    # Wait for player to continue with improved button handling
-    buttons = {"continue": continue_button}
-    handle_button_events(buttons, return_on_click="continue")
-    
-    # Record this investment in the history with the market impact
-    total_growth = growth + market_impact
-    
-    # Create a more educational and narrative investment history entry
-    if total_growth > 15:
-        quality = "excellent"
-    elif total_growth > 5:
-        quality = "good"
-    elif total_growth > -5:
-        quality = "modest"
-    elif total_growth > -15:
-        quality = "disappointing"
-    else:
-        quality = "disastrous"
-        
-    investment_history.append(f"Round {journey_round}: {choice} - {quality} growth of {total_growth}%")
-    
-    return wealth
-
-# Function to provide investment tips and educational content
-def show_investment_tips():
-    tips = [
-        "Diversification: Don't put all your eggs in one basket.",
-        "Higher returns come with higher risks.",
-        "Long-term investments often beat short-term trades.",
-        "Compound interest is the eighth wonder of the world.",
-        "Research before investing - knowledge reduces risk.",
-        "Regular investing beats market timing.",
-        "Know your risk tolerance before investing.",
-        "Keep emergency funds in liquid, safe accounts.",
-        "Consider tax implications of investments.",
-        "Reinvest dividends to accelerate growth."
-    ]
-    
-    quotes = [
-        "The best investment you can make is in yourself. - Warren Buffett",
-        "Be fearful when others are greedy. - Warren Buffett",
-        "Money is a terrible master but an excellent servant. - P.T. Barnum",
-        "Financial freedom is for those who learn and work for it. - Kiyosaki",
-        "Know the value, not just the price. - Philip Fisher"
-    ]
-    
-    # Setup screen
-    draw_gradient_background((230, 230, 250), (240, 255, 255))
-    
-    # Draw header with title
-    draw_header("Financial Wisdom", title_color=GOLD, font=title_font)
-    
-    # Create book decoration
-    pygame.draw.rect(SCREEN, BROWN, (WIDTH//2-175, 110, 350, 40), border_radius=5)
-    pygame.draw.rect(SCREEN, LIGHT_YELLOW, (WIDTH//2-175, 150, 350, 300))
-    pygame.draw.rect(SCREEN, BLACK, (WIDTH//2-175, 110, 350, 340), 2)
-    draw_text("Investment Guide", WIDTH//2, 130, subtitle_font, GOLD)
-    
-    # Display 3 random tips
-    selected_tips = random.sample(tips, 3)
-    for i, tip in enumerate(selected_tips):
-        # Tip box
-        pygame.draw.rect(SCREEN, WHITE, (WIDTH//2-160, 170+(i*90), 320, 70), border_radius=10)
-        pygame.draw.rect(SCREEN, BLACK, (WIDTH//2-160, 170+(i*90), 320, 70), 1, border_radius=10)
-        
-        # Star bullet
-        star_x, star_y = WIDTH//2-150, 205+(i*90)
-        pygame.draw.polygon(SCREEN, GOLD, [
-            (star_x, star_y), 
-            (star_x+5, star_y-10), 
-            (star_x+10, star_y), 
-            (star_x+5, star_y+10)
-        ])
-        
-        # Handle text wrapping
-        words = tip.split()
-        if len(words) > 7:  # Reduce max words per line
-            first_line = " ".join(words[:7])
-            second_line = " ".join(words[7:])
-            draw_text(first_line, WIDTH//2-10, 185+(i*90), main_font, DARK_BLUE)
-            draw_text(second_line, WIDTH//2-10, 215+(i*90), main_font, DARK_BLUE)
-        else:
-            draw_text(tip, WIDTH//2-10, 205+(i*90), main_font, DARK_BLUE)
-    
-    # Motivational quote
-    draw_text(random.choice(quotes), WIDTH//2, HEIGHT-130, small_font, DARK_BLUE)
-    
-    # Buttons
-    buttons = {
-        "continue": Button(WIDTH//2-100, HEIGHT-80, 200, 50, "Continue Journey", LIGHT_BLUE, ROYAL_BLUE, WHITE),
-        "quit": Button(WIDTH-150, HEIGHT-60, 120, 40, "Quit Game", RED, LIGHT_CORAL, BLACK),
-        "restart": Button(30, HEIGHT-60, 120, 40, "Restart", GREEN, LIGHT_GREEN, BLACK)
-    }
-    
-    for button in buttons.values():
-        button.draw(SCREEN)
-    
-    pygame.display.update()
-    
-    # Use helper function for button events
-    result = handle_button_events(buttons, return_on_click="continue")
-    if result == "RESTART":
-        return "RESTART"
-    
-    return "CONTINUE"
-
-# Function to show decision screen and handle player choices with skill-based narrative elements
-def show_decision_screen(wealth, journey_round):
-    # Setup screen
-    draw_gradient_background((255, 250, 205), (255, 228, 225))
-    
-    # Draw header with title
-    draw_header("Strategic Decision Point", title_color=WHITE)
-    
-    # Display wealth with appropriate colors
-    display_wealth(wealth, WIDTH//2, 120)
-    
-    # Narrative panel - larger for more story content
-    create_panel(WIDTH-100, 150, 50, 180, color=(255, 255, 255), alpha=180)
-    
-    # Dynamic story narratives based on journey progress and wealth
-    story_options = {
-        1: {
-            "high": [
-                "Your early investments have performed exceptionally well, attracting the attention of a senior financial advisor.",
-                "Your financial mentor is impressed with your intuition and suggests you're ready for more complex strategies."
-            ],
-            "medium": [
-                "Your cautious approach has kept your portfolio stable, though your advisor sees untapped potential.",
-                "Your investment journey shows promise, but your advisor suggests more calculated risks might be needed."
-            ],
-            "low": [
-                "Despite early setbacks, your financial mentor sees determination in your investment approach.",
-                "The market has been challenging, but your advisor believes valuable lessons have been learned."
-            ]
-        },
-        2: {
-            "high": [
-                "Word of your investment success has spread. A prestigious firm has offered specialized opportunities.",
-                "Your growing reputation as a savvy investor has opened doors to exclusive investment circles."
-            ],
-            "medium": [
-                "Your balanced portfolio shows maturity in your investment thinking. New paths are emerging.",
-                "Your consistent approach has built a foundation for more strategic investment decisions."
-            ],
-            "low": [
-                "Recovery strategies have become crucial. Your advisor suggests focusing on fundamental analysis.",
-                "The challenging market has tested your resolve. Your next moves will be defining moments."
-            ]
-        },
-        3: {
-            "high": [
-                "Financial publications have taken note of your exceptional returns. New mentors seek you out.",
-                "Your investment insight has captured attention of industry veterans. Elite opportunities await."
-            ],
-            "medium": [
-                "Your methodical approach demonstrates growing expertise in market analysis and timing.",
-                "Your portfolio diversification strategies show increasing sophistication in risk management."
-            ],
-            "low": [
-                "Despite market headwinds, your persistence shows the mindset needed for long-term success.",
-                "Your resilience in the face of volatility demonstrates the temperament of a seasoned investor."
-            ]
-        },
-        4: {
-            "high": [
-                "Your investment mastery has become legendary. Financial institutions compete for your insights.",
-                "Few have achieved your level of market understanding. Your strategies are studied by others."
-            ],
-            "medium": [
-                "Your disciplined approach has weathered multiple market cycles, showing true investing wisdom.",
-                "Your balanced risk management has built a resilient portfolio that others seek to emulate."
-            ],
-            "low": [
-                "The path to investment mastery is often marked by challenges that forge deeper understanding.",
-                "Even the greatest investors faced defining moments where persistence determined their legacy."
-            ]
-        }
-    }
-    
-    # Select appropriate narrative based on journey round and wealth
-    wealth_ratio = wealth / 10000  # Compare to starting wealth
-    
-    if journey_round <= 4:
-        if wealth_ratio > 1.5:
-            narrative = random.choice(story_options[min(journey_round, 4)]["high"])
-        elif wealth_ratio > 0.8:
-            narrative = random.choice(story_options[min(journey_round, 4)]["medium"])
-        else:
-            narrative = random.choice(story_options[min(journey_round, 4)]["low"])
-    else:
-        # For very advanced rounds
-        if wealth_ratio > 2:
-            narrative = "Your investment legacy continues to grow. Few have mastered the markets as you have."
-        elif wealth_ratio > 1:
-            narrative = "Your journey exemplifies the balanced approach of a true market strategist."
-        else:
-            narrative = "Even in challenging times, your persistence defines the heart of a true investor."
-    
-    # Format and display narrative with word wrapping
-    words = narrative.split()
-    if len(words) > 10:  # If narrative is long enough to need wrapping
-        first_line = " ".join(words[:10])
-        second_line = " ".join(words[10:])
-        draw_text(first_line, WIDTH//2, 210, main_font, DARK_BLUE)
-        draw_text(second_line, WIDTH//2, 235, main_font, DARK_BLUE)
-    else:
-        draw_text(narrative, WIDTH//2, 220, main_font, DARK_BLUE)
-    
-    # Add skill-based decision context
-    skill_challenges = [
-        "Market analysts predict volatility ahead. How will you position your portfolio?",
-        "Economic indicators are mixed. Where do you see the best opportunities?",
-        "Sector rotations are occurring rapidly. How will you adapt your strategy?",
-        "Interest rate changes are expected. How will you adjust your investments?",
-        "Global events are shifting market sentiment. What's your strategic response?",
-        "New technologies are disrupting traditional industries. How will you capitalize?",
-        "Investor psychology is driving market movements. What's your contrarian play?",
-        "Regulatory changes are affecting key sectors. How will you navigate the shift?"
-    ]
-    
-    # Display the skill challenge
-    challenge = random.choice(skill_challenges)
-    draw_text(challenge, WIDTH//2, 270, main_font, DARK_BLUE)
-    
-    # Add skill-based risk-reward indicator
-    create_panel(WIDTH-200, 50, 100, 320, color=(240, 248, 255), alpha=200, border=True)
-    
-    draw_text("Risk-Reward Analysis:", WIDTH//2, 335, main_font, DARK_BLUE)
-    
-    # Risk-reward indicators to help player make a skill-based decision
-    risk_metrics = [
-        f"Market Volatility: {random.choice(['High', 'Moderate', 'Low'])}",
-        f"Economic Outlook: {random.choice(['Strong', 'Stable', 'Uncertain', 'Weak'])}",
-        f"Interest Rate Trend: {random.choice(['Rising', 'Stable', 'Falling'])}",
-        f"Investor Sentiment: {random.choice(['Bullish', 'Neutral', 'Bearish'])}",
-    ]
-    
-    # Display risk metrics
-    for i, metric in enumerate(risk_metrics):
-        draw_text(metric, WIDTH//2, 360 + i*25, small_font, DARK_BLUE)
-    
-    # Create buttons with more strategic options
-    buttons = {
-        "strategic": Button(WIDTH//4-150, 440, 280, 60, "Strategic Market Positioning", LIGHT_BLUE, ROYAL_BLUE, WHITE),
-        "secure": Button(3*WIDTH//4-130, 440, 260, 60, "Secure Gains & Reassess", LIGHT_CORAL, DARK_RED, WHITE),
-        "tips": Button(WIDTH//2-80, 510, 160, 40, "Investment Analysis", LIGHT_GREEN, GREEN, DARK_GREEN),
-        "quit": Button(WIDTH-150, HEIGHT-60, 120, 40, "Exit Market", RED, LIGHT_CORAL, BLACK),
-        "restart": Button(30, HEIGHT-60, 120, 40, "New Journey", GREEN, LIGHT_GREEN, BLACK)
-    }
-    
-    for button in buttons.values():
-        button.draw(SCREEN)
-    
-    pygame.display.update()
-    
-    # Handle player decision using helper function
-    decision = handle_button_events(buttons, return_on_click=list(buttons.keys()))
-    
-    # Map strategic decisions to the original options for compatibility
-    if decision == "strategic":
-        return "continue"
-    elif decision == "secure":
-        return "stop"
-    elif decision == "tips":
-        # Show investment tips then return to decision screen
-        show_investment_tips()
-        return show_decision_screen(wealth, journey_round)
-    else:
-        return decision
-
-# Game over screen when player loses all money
-def show_game_over():
-    # Dramatic red-to-black gradient
-    draw_gradient_background((180, 0, 0), (0, 0, 0))
-    
-    # Draw header with title
-    draw_header("FINANCIAL RUIN!", title_color=RED, background_color=DARK_RED, y_pos=80, font=title_font)
-    
-    # Message panel
-    create_panel(WIDTH-100, 200, 50, 200, color=(0, 0, 0), alpha=180)
-    
-    # Shorter dramatic message
-    draw_text("You've lost everything!", 
-             WIDTH//2, 250, subtitle_font, RED)
-    draw_text("Your financial journey ends in disaster.", 
-             WIDTH//2, 290, main_font, LIGHT_CORAL)
-    draw_text("In finance, there are no second chances.", 
-             WIDTH//2, 330, main_font, LIGHT_CORAL)
-    
-    # Create buttons
-    buttons = {
-        "restart": Button(WIDTH//2-200, 420, 180, 50, "Try Again", GREEN, LIGHT_GREEN),
-        "quit": Button(WIDTH//2+20, 420, 180, 50, "Give Up", RED, LIGHT_CORAL)
-    }
-    
-    # Draw buttons initially
-    for button in buttons.values():
-        button.draw(SCREEN)
-    pygame.display.update()
-    
-    # Use helper function to handle button events
-    result = handle_button_events(buttons, return_on_click="restart")
-    return "restart" if result else "restart"  # Always return restart as fallback
-
-# Main function where the game starts and runs
-def main():
-    welcome_message()
-    
-    # Main game loop for multiple playthroughs
-    while True:
-        wealth = 10000
-        investment_history = []
-        journey_round = 1
-        
-        # Show tips before starting
-        show_investment_tips()
-        
-        # First investment round
-        wealth = journey_progress(wealth, investment_history, journey_round)
-        
-        # Main game loop
-        continue_journey = True
-        while continue_journey:
-            journey_round += 1
-            
-            # Occasionally show tips (20% chance)
-            if random.random() < 0.2:
-                show_investment_tips()
-            
-            # Show decision screen
-            decision = show_decision_screen(wealth, journey_round)
-            
-            if decision == "continue":
-                wealth = journey_progress(wealth, investment_history, journey_round)
-                # Check for bankruptcy
-                if wealth <= 0:
-                    show_game_over()
-                    continue_journey = False
-            elif decision == "stop":
-                continue_journey = False
-            elif decision == "restart":
-                continue_journey = False
-                journey_round = 0
-                wealth = 10000
-                investment_history = []
-            elif decision == "quit":
-                pygame.quit()
-                sys.exit()
-        
-        # End of the game: Show the final wealth and the player's investment history
-        # Draw a gradient background based on performance
-        if wealth >= 20000:
-            # Success - gold to light green gradient
-            draw_gradient_background((255, 223, 0), (144, 238, 144))
-        elif wealth > 10000:
-            # Positive - light blue to light green
-            draw_gradient_background((173, 216, 230), (144, 238, 144))
-        elif wealth > 5000:
-            # Neutral - light yellow to white
-            draw_gradient_background((255, 255, 224), (255, 255, 255))
-        else:
-            # Loss - light coral to white
-            draw_gradient_background((240, 128, 128), (255, 255, 255))
-        
-        # Draw decorative header
-        pygame.draw.rect(SCREEN, ROYAL_BLUE, (50, 30, WIDTH-100, 70), border_radius=15)
-        pygame.draw.rect(SCREEN, BLACK, (50, 30, WIDTH-100, 70), 2, border_radius=15)
-        
-        # Draw title with shadow effect
-        title_shadow = title_font.render("Journey Complete", True, BLACK)
-        title_rect_shadow = title_shadow.get_rect(center=(WIDTH // 2 + 2, 65 + 2))
-        SCREEN.blit(title_shadow, title_rect_shadow)
-        
-        title_surface = title_font.render("Journey Complete", True, GOLD)
-        title_rect = title_surface.get_rect(center=(WIDTH // 2, 65))
-        SCREEN.blit(title_surface, title_rect)
-        
-        # Shorter messages based on performance
-        if wealth >= 30000:
-            message = "Tripled your investment! Amazing!"
-            color = DARK_GREEN
-            story = "Your financial skills are legendary! Future Wall Street star?"
-        elif wealth >= 20000:
-            message = "Doubled your investment! Great job!"
-            color = DARK_GREEN
-            story = "Shrewd decisions have paid off. A financial prodigy!"
-        elif wealth > 10000:
-            message = "Investment profit! Good job!"
-            color = DARK_BLUE
-            story = "Careful investing yielded positive returns."
-        elif wealth == 10000:
-            message = "Broke even - no gain or loss."
-            color = BLUE
-            story = "Played it safe and protected your capital."
-        elif wealth > 5000:
-            message = "Lost some money, but kept most."
-            color = BROWN
-            story = "Challenging markets, but preserved capital well."
-        elif wealth > 0:
-            message = "Significant investment losses."
-            color = DARK_RED
-            story = "Investing carries risks. Better luck next time!"
-        else:
-            message = "Lost all investment capital."
-            color = DARK_RED
-            story = "Market was brutal. Every loss teaches a lesson!"
-        
-        # Draw wealth amount with decorative elements
-        wealth_panel = pygame.Surface((350, 70), pygame.SRCALPHA)
-        if wealth > 10000:
-            wealth_panel.fill((144, 238, 144, 220))  # Light green with opacity
-        elif wealth < 10000:
-            wealth_panel.fill((255, 182, 193, 220))  # Light pink with opacity
-        else:
-            wealth_panel.fill((255, 255, 255, 220))  # White with opacity
-        
-        SCREEN.blit(wealth_panel, (WIDTH//2 - 175, 110))
-        pygame.draw.rect(SCREEN, BLACK, (WIDTH//2 - 175, 110, 350, 70), 2, border_radius=10)
-        
-        # Add gold coins decoration
-        pygame.draw.circle(SCREEN, GOLD, (WIDTH//2 - 175 + 25, 110 + 35), 20)
-        pygame.draw.circle(SCREEN, BLACK, (WIDTH//2 - 175 + 25, 110 + 35), 20, 1)
-        pygame.draw.circle(SCREEN, GOLD, (WIDTH//2 + 175 - 25, 110 + 35), 20)
-        pygame.draw.circle(SCREEN, BLACK, (WIDTH//2 + 175 - 25, 110 + 35), 20, 1)
-        
-        # Draw wealth with shadow
-        wealth_text = f"Final Wealth: ${wealth:.2f}"
-        draw_text(wealth_text, WIDTH // 2, 145, font=subtitle_font, color=color)
-        
-        # Create a panel for the performance message
-        message_panel = pygame.Surface((WIDTH-150, 50), pygame.SRCALPHA)
-        message_panel.fill((255, 255, 255, 180))  # White with opacity
-        SCREEN.blit(message_panel, (75, 190))
-        
-        # Draw performance message and story
-        draw_text(message, WIDTH // 2, 215, font=main_font, color=color)
-        draw_text(story, WIDTH // 2, 245, font=main_font, color=DARK_BLUE)
-        
-        # Create a scroll for investment history
-        history_panel = pygame.Surface((WIDTH-200, 180), pygame.SRCALPHA)
-        history_panel.fill((255, 255, 255, 180))  # White with opacity
-        SCREEN.blit(history_panel, (100, 270))
-        
-        # Add decorative elements to history panel
-        pygame.draw.rect(SCREEN, BROWN, (100, 270, WIDTH-200, 30), border_radius=5)  # Top bar
-        pygame.draw.rect(SCREEN, BLACK, (100, 270, WIDTH-200, 180), 2, border_radius=10)  # Border
-        
-        # Draw history title
-        history_title = subtitle_font.render("Investment History", True, WHITE)
-        history_title_rect = history_title.get_rect(center=(WIDTH // 2, 285))
-        SCREEN.blit(history_title, history_title_rect)
-        
-        # Show each investment decision the player made
-        y_offset = 320
-        for i, investment in enumerate(investment_history):
-            # Alternate row colors for better readability
-            if i % 2 == 0:
-                row_panel = pygame.Surface((WIDTH-220, 25), pygame.SRCALPHA)
-                row_panel.fill((240, 240, 240, 150))  # Light gray with opacity
-                SCREEN.blit(row_panel, (110, y_offset - 10))
-            
-            draw_text(investment, WIDTH // 2, y_offset, font=small_font, color=BLACK)
-            y_offset += 25
-            
-            # If we're running out of space, stop listing investments
-            if y_offset > 430:
-                draw_text("... and more decisions", WIDTH // 2, y_offset, font=small_font, color=GRAY)
-                break
-        
-        # Create a panel for the final message
-        final_panel = pygame.Surface((WIDTH-100, 60), pygame.SRCALPHA)
-        final_panel.fill((230, 230, 250, 200))  # Lavender with opacity
-        SCREEN.blit(final_panel, (50, HEIGHT - 130))
-        
-        # Draw final message with decorative elements
-        draw_text("Thank you for playing! Wouldd you like to start a new journey?", 
-                 WIDTH // 2, HEIGHT - 110, font=main_font, color=DARK_BLUE)
-        
-        # Add decorative stars
-        for i in range(5):
-            x_pos = 100 + i * (WIDTH - 200) / 4
-            pygame.draw.polygon(SCREEN, GOLD, [
-                (x_pos, HEIGHT - 85),  # Top
-                (x_pos + 5, HEIGHT - 75),  # Right
-                (x_pos, HEIGHT - 65),  # Bottom
-                (x_pos - 5, HEIGHT - 75)   # Left
-            ])
-        
-        # Buttons for restarting or quitting
-        restart_button = Button(WIDTH // 4 - 100, HEIGHT - 60, 200, 50, "New Journey", GREEN, LIGHT_GREEN, DARK_GREEN)
-        quit_button = Button(3 * WIDTH // 4 - 100, HEIGHT - 60, 200, 50, "Exit Game", RED, LIGHT_CORAL, DARK_RED)
-        
-        restart_button.draw(SCREEN)  # Draw the restart button
-        quit_button.draw(SCREEN)  # Draw the quit button
-        
-        pygame.display.update()  # Update the screen with the final options
-        
-        # Wait for the player's final decision
-        waiting_for_decision = True
-        while waiting_for_decision:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                
-                mouse_pos = pygame.mouse.get_pos()  # Get mouse position
-                
-                # Check for clicks on the restart or quit buttons
-                restart_button.check_hover(mouse_pos)
                 quit_button.check_hover(mouse_pos)
+                restart_button.check_hover(mouse_pos)
                 
-                if restart_button.is_clicked(mouse_pos, event):
-                    waiting_for_decision = False  # Continue to a new game
-                    break
-                elif quit_button.is_clicked(mouse_pos, event):
-                    pygame.quit()  # Exit the game
-                    sys.exit()
-                
-                # Redraw buttons with updated hover states
-                restart_button.draw(SCREEN)
-                quit_button.draw(SCREEN)
-                pygame.display.update()
-                pygame.time.delay(30)
+                # Handle navigation button clicks
+                action = handle_navigation(quit_button, restart_button, None, mouse_pos, event)
+                if action == "restart":
+                    main()  # Restart game
+                    return
+            
+            # Redraw buttons with hover effects
+            for button in buttons:
+                button.draw(SCREEN)
+            
+            quit_button.draw(SCREEN)
+            restart_button.draw(SCREEN)
+            pygame.display.update()
+            pygame.time.delay(30)
+        
+        # Handle selection
+        result = None
+        
+        if selection == "Invest in Stocks":
+            result = stock_market(wealth)
+        elif selection == "Invest in Bonds":
+            result = bond_market(wealth)
+        elif selection == "Open a Savings Account":
+            result = savings_account(wealth)
+        elif selection == "Create Emergency Fund":
+            result = emergency_fund(wealth)
+        elif selection == "Check Portfolio":
+            result = show_portfolio(wealth)
+        elif selection == "Market Research":
+            result = market_research(wealth)
+            if result is None:
+                result = wealth  # No change to wealth
+        
+        # Handle restart option from sub-menus
+        if result == "restart":
+            main()
+            return
+        
+        # Update wealth
+        if isinstance(result, (int, float)):
+            wealth = result
+        
+        # Trigger random event if rolled
+        if random_event_chance and turn_counter > 0:
+            result = random_event(wealth)
+            if result == "restart":
+                main()
+                return
+            wealth = result
+        
+        # Increment turn counter for non-informational actions
+        if selection not in ["Check Portfolio", "Market Research"]:
+            turn_counter += 1
 
-# Entry point of the program
+# Start the game
 if __name__ == "__main__":
-    main()  # Start the game
+    main()
